@@ -201,7 +201,7 @@
             font-size: 0.65rem;
         }
 
-        /* 施術と準備時間の境界（粗めの点線） */
+        /* 施術（メニュー＋オプション）と準備時間の境界（粗めの点線） */
         .schedule-cell.reserved.prep-slot::before {
             content: '';
             position: absolute;
@@ -221,11 +221,97 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 2px 3px;
+            font-size: 0.7rem;
+            line-height: 1.35;
+            white-space: normal;
             word-break: break-word;
+            overflow-wrap: anywhere;
+            text-align: center;
+        }
+
+        /* 複数枠にまたがる予約は、後続の15分枠上にもラベルを描画する */
+        .schedule-cell.reserved.reservation-span-start,
+        .schedule-cell.reserved.reservation-span-single {
+            overflow: visible;
+            z-index: 3;
+        }
+        .schedule-cell.reserved.reservation-span-middle,
+        .schedule-cell.reserved.reservation-span-end {
+            z-index: 1;
+        }
+
+        /* 予約枠はセル内余白をなくし、左隙間が出ないようにする */
+        .schedule-cell.reserved {
+            padding: 0;
+        }
+
+        /* 日付境界：各セルの線を 1px 重ねて横罫線の切れ目を埋める
+           （overflow:visible で上下にはみ出させる） */
+        .schedule-cell.schedule-cell--day-boundary {
+            overflow: visible;
+            z-index: 4;
+        }
+        .schedule-cell.schedule-cell--day-boundary::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: -1px;
+            bottom: -1px;
+            width: 2px;
+            background: #10b981;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* リソースグループ境界（空セル用の灰色線） */
+        .schedule-cell.schedule-cell--resource-group-boundary:not(.reserved)::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: -1px;
+            bottom: -1px;
+            width: 2px;
+            background: #cdcdcd;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .schedule-cell.schedule-cell--resource-group-boundary:not(.reserved) {
+            overflow: visible;
+            z-index: 3;
+        }
+
+        .schedule-cell .reservation-slot-content.is-span-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: calc(var(--reservation-span-slots, 1) * 32px);
+            max-height: calc(var(--reservation-span-slots, 1) * 32px);
+            box-sizing: border-box;
+            display: block;
+            align-items: unset;
+            justify-content: unset;
+            text-align: left;
+            padding: 3px 3px 2px;
+            background: transparent;
+            pointer-events: auto;
+            overflow: hidden;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+
+        .form-help {
+            display: block;
+            margin-top: 6px;
+            font-size: 0.8rem;
+            color: #6b7280;
+            line-height: 1.5;
         }
 
     </style>
-
+    <link href="./sp.css" rel="stylesheet">
+    <script src="./sp.js" defer></script>
 </head>
 
 <body>
@@ -257,10 +343,10 @@
         <header class="topbar">
             <div class="search">
                 <input type="search" placeholder="ID/顧客名/電話番号 を検索"
-                    onchange="showReservationListPopup(this.value)" />
+                    onchange="if(this.value.trim()){showReservationListPopup(this.value);}" />
             </div>
-            <button class="btn normal-btn" onclick="printReservation()">受付情報印刷</button>
-            <button class="btn warn-btn" onclick="toggleOnlineReception()">ネット受付停止</button>
+            <button class="btn normal-btn print-reservation-btn" onclick="printReservation()">受付情報印刷</button>
+            <button class="btn warn-btn" onclick="toggleOnlineReception()">WEB受付停止</button>
         </header>
         <!-- Main -->
         <main class="main">
@@ -527,8 +613,8 @@
 
 
     <!-- カレンダーポップアップ -->
-    <div class="popup-overlay" id="dateCalendarOverlay" style="display: none; z-index: 10002;" onclick="closeDateCalendar()">
-        <div class="calendar-popup" id="dateCalendarModal" onclick="event.stopPropagation()">
+    <div class="popup-overlay" id="dateCalendarOverlay" style="display: none; z-index: 10002;">
+        <div class="calendar-popup" id="dateCalendarModal">
             <div class="calendar-popup-header">
                 <h3 class="calendar-popup-title">📅 日付を選択</h3>
                 <button class="calendar-popup-close" onclick="closeDateCalendar()">×</button>
@@ -552,64 +638,76 @@
 
             <div class="modal-body">
                 <div class="detail-section">
-                                        <div class="detail-grid">
-                        <div class="detail-item">
-                            <label class="detail-label">日時</label>
-                            <div class="detail-value" id="detailDateTime">-</div>
-                        </div>
-                        <div class="detail-item tryServ-guest-count-field" id="detailGuestCountRow">
-                            <label class="detail-label">人数</label>
-                            <div class="detail-value" id="detailGuestCount">-</div>
-                        </div>
-                        <div class="detail-item">
-                            <label class="detail-label">メニュー</label>
-                            <div class="detail-value" id="detailService">-</div>
-                        </div>
-                        <div class="detail-item">
-                            <label class="detail-label">顧客名</label>
-                            <div style="display: flex; gap: 8px;">
-                                <div class="detail-value" style="flex: 0 0 50%;">
-                                    <span id="detailLastName">-</span>
-                                </div>
-                                <div class="detail-value" style="flex: 0 0 50%;">
-                                    <span id="detailFirstName">-</span>
+                    <div class="sections-container" style="padding: 0; gap: 20px;">
+                        <div class="reception-section">
+                            <div class="detail-item">
+                                <label class="detail-label">日時</label>
+                                <div class="detail-value" id="detailDateTime">-</div>
+                            </div>
+                            <div class="detail-item tryServ-guest-count-field" id="detailGuestCountRow">
+                                <label class="detail-label">人数</label>
+                                <div class="detail-value" id="detailGuestCount">-</div>
+                            </div>
+                            <div class="detail-item">
+                                <label class="detail-label">顧客名</label>
+                                <div class="detail-name-pair">
+                                    <div class="detail-value">
+                                        <span id="detailLastName">-</span>
+                                    </div>
+                                    <div class="detail-value">
+                                        <span id="detailFirstName">-</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="detail-item">
-                            <label class="detail-label">担当者</label>
-                            <div class="detail-value" id="detailResource">-</div>
-                        </div>
-                        <div class="detail-item">
-                            <label class="detail-label">顧客名【カナ】</label>
-                            <div style="display: flex; gap: 8px;">
-                                <div class="detail-value" style="flex: 0 0 50%;">
-                                    <span id="detailLastNameKana">-</span>
-                                </div>
-                                <div class="detail-value" style="flex: 0 0 50%;">
-                                    <span id="detailFirstNameKana">-</span>
+                            <div class="detail-item">
+                                <label class="detail-label">顧客名【カナ】</label>
+                                <div class="detail-name-pair">
+                                    <div class="detail-value">
+                                        <span id="detailLastNameKana">-</span>
+                                    </div>
+                                    <div class="detail-value">
+                                        <span id="detailFirstNameKana">-</span>
+                                    </div>
                                 </div>
                             </div>
+                            <div class="detail-item">
+                                <label class="detail-label">電話番号</label>
+                                <div class="detail-value" id="detailPhone">-</div>
+                            </div>
+                            <div class="detail-item">
+                                <label class="detail-label">メールアドレス</label>
+                                <div class="detail-value" id="detailEmail">-</div>
+                            </div>
                         </div>
-                        <div class="detail-item">
-                            <label class="detail-label">設備・機器類</label>
-                            <div class="detail-value" id="detailResource">-</div>
-                        </div>
-                        <div class="detail-item">
-                            <label class="detail-label">電話番号</label>
-                            <div class="detail-value" id="detailPhone">-</div>
-                        </div>
-                        <div class="detail-item">
-                            <label class="detail-label">施設メモ</label>
-                            <div class="detail-value" id="detailNotes">-</div>
-                        </div>
-                        <div class="detail-item">
-                            <label class="detail-label">メールアドレス</label>
-                            <div class="detail-value" id="detailEmail">-</div>
-                        </div>
-                        <div class="detail-item">
-                            <label class="detail-label">コメント</label>
-                            <div class="detail-value" id="detailComments">-</div>
+                        <div class="customer-section">
+                            <div class="detail-item">
+                                <label class="detail-label">メニュー</label>
+                                <div class="detail-value" id="detailService">-</div>
+                            </div>
+                            <div class="detail-item">
+                                <label class="detail-label">オプションメニュー</label>
+                                <div class="detail-value" id="detailOptionMenus">-</div>
+                            </div>
+                            <div class="detail-item">
+                                <label class="detail-label">合計料金(税込) / 所要時間</label>
+                                <div class="detail-value" id="detailTotalInfo">-</div>
+                            </div>
+                            <div class="detail-item">
+                                <label class="detail-label">担当者</label>
+                                <div class="detail-value" id="detailStaff">-</div>
+                            </div>
+                            <div class="detail-item">
+                                <label class="detail-label">設備・機器類</label>
+                                <div class="detail-value" id="detailFacility">-</div>
+                            </div>
+                            <div class="detail-item">
+                                <label class="detail-label">施設メモ</label>
+                                <div class="detail-value" id="detailNotes">-</div>
+                            </div>
+                            <div class="detail-item">
+                                <label class="detail-label">コメント</label>
+                                <div class="detail-value" id="detailComments">-</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -619,20 +717,20 @@
                 <button type="button" class="modal-btn modal-btn-primary modal-resend-mail-btn" id="resendCompletionMailBtn"
                     onclick="resendCompletionMailFromDetail()">受付・予約メールの再送信</button>
                 <button type="button" class="modal-btn modal-btn-primary"
-                    onclick="hideReservationDetailModal()">受付完了</button>
+                    onclick="completeReceptionFromDetail()">受付完了</button>
                 <button type="button" class="modal-btn modal-btn-primary"
                     onclick="editReservationFromDetail()">編集</button>
                 <button type="button" class="modal-btn modal-btn-delete"
                     onclick="cancelReservationFromDetail()">受付キャンセル</button>
-                <button type="button" class="modal-btn modal-btn-secondary"
+                <button type="button" class="modal-btn modal-btn-cancel"
                     onclick="hideReservationDetailModal()">閉じる</button>
             </div>
         </div>
     </div>
 
     <!-- キャンセル理由入力モーダル -->
-    <div class="reservation-detail-modal" id="cancelReasonModal" style="display: none;" onclick="hideCancelReasonModal()">
-        <div class="normal-modal" style="max-width: 500px;" onclick="event.stopPropagation()">
+    <div class="reservation-detail-modal" id="cancelReasonModal" style="display: none;">
+        <div class="normal-modal" style="max-width: 500px;">
             <div class="modal-header">
                 <h3 class="modal-title">❌ キャンセル理由入力</h3>
                 <button class="modal-close" onclick="hideCancelReasonModal()">×</button>
@@ -656,8 +754,8 @@
 </div>
 
 <!-- 顧客情報変更確認モーダル -->
-<div class="reservation-detail-modal" id="customerChangeConfirmModal" style="display: none; z-index: 10003;" onclick="hideCustomerChangeConfirmModal()">
-<div class="normal-modal" style="max-width: 500px; position: relative; z-index: 10003;" onclick="event.stopPropagation()">
+<div class="reservation-detail-modal" id="customerChangeConfirmModal" style="display: none; z-index: 10003;">
+<div class="normal-modal" style="max-width: 500px; position: relative; z-index: 10003;">
     <div class="modal-header">
         <h3 class="modal-title">⚠️ 顧客情報の変更確認</h3>
         <button class="modal-close" onclick="hideCustomerChangeConfirmModal()">×</button>
@@ -682,12 +780,60 @@
 </div>
 </div>
 
+<!-- 顧客情報確認モーダル（直接入力・既存顧客一致時） -->
+<div class="reservation-detail-modal" id="customerInfoConfirmModal" style="display: none; z-index: 10003;">
+<div class="normal-modal" style="max-width: 520px; position: relative; z-index: 10003;">
+    <div class="modal-header">
+        <h3 class="modal-title">⚠️ 顧客情報の確認</h3>
+        <button class="modal-close" onclick="hideCustomerInfoConfirmModal()">×</button>
+    </div>
+
+    <div class="modal-body">
+        <div class="form-section">
+            <p style="margin-bottom: 16px;">既に同じ内容の顧客情報が登録されています。<br>このまま顧客情報を新規登録するか、登録済み情報を利用するか、選択してください。</p>
+            <div style="background: #f5f5f5; padding: 12px; border-radius: 4px; margin-bottom: 16px;">
+                <label style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; cursor: pointer;">
+                    <input type="radio" name="customerInfoChoice" value="input" checked style="margin-top: 3px; flex-shrink: 0;">
+                    <span style="flex: 1; min-width: 0;">
+                        <strong style="display: block; margin-bottom: 6px;">入力した顧客情報：</strong>
+                        <span style="display: block; color: #333;">
+                            <div>顧客名： テスト 花子</div>
+                            <div>顧客名【カナ】： </div>
+                            <div>電話番号： 03-1111-1111</div>
+                            <div>メールアドレス：</div>
+                        </span>
+                    </span>
+                </label>
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+                    <input type="radio" name="customerInfoChoice" value="existing" style="margin-top: 3px; flex-shrink: 0;">
+                    <span style="flex: 1; min-width: 0;">
+                        <strong style="display: block; margin-bottom: 6px;">登録済みの顧客情報：</strong>
+                        <span style="display: block; color: #333;">
+                            <div>ID： 35</div>
+                            <div>顧客名： テスト 花子</div>
+                            <div>顧客名【カナ】： テスト ハナコ</div>
+                            <div>電話番号： 03-1111-1111</div>
+                            <div>メールアドレス： test@example.com</div>
+                        </span>
+                    </span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-actions">
+        <button type="button" class="modal-btn modal-btn-primary" onclick="confirmCustomerInfo()">登録</button>
+        <button type="button" class="modal-btn modal-btn-cancel" onclick="hideCustomerInfoConfirmModal()">キャンセル</button>
+    </div>
+</div>
+</div>
+
 <!-- 統合受付モーダル -->
-    <div class="reservation-modal" id="reservationModal" style="display: none;" onclick="hideReservationModal()">
-        <div class="normal-modal" onclick="event.stopPropagation()">
+    <div class="reservation-modal" id="reservationModal" style="display: none;">
+        <div class="normal-modal">
         <div class="modal-header">
             <h3 class="modal-title" style="display: flex; align-items: center; gap: 4px;"><span class="modal-title-icon" aria-hidden="true">📝</span><span>受付・予約登録</span></h3>
-            <button class="modal-close" id="closeReservationModal" onclick="event.stopPropagation()">×</button>
+            <button class="modal-close" id="closeReservationModal" onclick="hideReservationModal()">×</button>
         </div>
 
             <!-- タブナビゲーション -->
@@ -736,6 +882,13 @@
                             </div>
                         </div>
 
+                        <div class="form-group-with-icon tryServ-guest-count-field" id="reservationGuestCountRow">
+                            <div class="form-content">
+                                <label class="form-label" for="reservationGuestCount">人数 <span class="required">*</span></label>
+                                <input type="text" class="form-input" id="reservationGuestCount" inputmode="numeric" pattern="[0-9]*" maxlength="5" autocomplete="off" value="2">
+                            </div>
+                        </div>
+
                         <div class="form-group">
                             <label class="form-label">顧客検索（顧客名/顧客名【カナ】）</label>
                             <div style="display: flex; align-items: center; gap: 10px;">
@@ -778,34 +931,41 @@
                         <div class="form-group">
                             <label class="form-label" for="editEmail">メールアドレス</label>
                             <input type="email" class="form-input" id="editEmail" value="xxxxx@xxxx.xxxx">
+                            <small class="form-help">メールアドレスを入力しない場合、受付・予約完了メールは送信されません。</small>
                         </div>
 
                     </div>
 
                     <div class="customer-section">
 
-                        <div class="form-group-with-icon tryServ-guest-count-field" id="reservationGuestCountRow">
-                            <div class="form-content">
-                                <label class="form-label" for="reservationGuestCount">人数 <span class="required">*</span></label>
-                                <input type="text" class="form-input" id="reservationGuestCount" inputmode="numeric" pattern="[0-9]*" maxlength="5" autocomplete="off" value="2">
-                            </div>
-                        </div>
                         <div class="form-group-with-icon">
                             <div class="form-content">
                                 <label class="form-label" for="menu">メニュー <span class="required">*</span></label>
-                                <select class="form-input" id="menu" required>
+                                <select class="form-input" id="menu" required onchange="onReservationMenuChange('register')">
                                     <option value="">選択してください</option>
-                                    <option value="カット">カット(30分)</option>
-                                    <option value="シャンプー">シャンプー(30分)</option>
-                                    <option value="カット+シャンプー">カット+シャンプー(60分)</option>
-                                    <option value="フルコース">フルコース(120分)</option>
+                                    <option value="カット" data-price="4000" data-duration="30" data-groups="1">カット(30分 / 4,000円)</option>
+                                    <option value="シャンプー" data-price="4000" data-duration="30" data-groups="1,2">シャンプー(30分 / 4,000円)</option>
+                                    <option value="カット+シャンプー" data-price="7000" data-duration="60" data-groups="1">カット+シャンプー(60分 / 7,000円)</option>
+                                    <option value="フルコース" data-price="12000" data-duration="120" data-groups="1,2">フルコース(120分 / 12,000円)</option>
                                 </select>
+                            </div>
+                        </div>
+                        <div class="form-group-with-icon" id="registerOptionMenuRow">
+                            <div class="form-content">
+                                <label class="form-label">オプションメニュー</label>
+                                <div class="option-menu-check-list" id="registerOptionMenuList">
+                                    <div class="opt-meta">メニューを選択すると選択可能になります</div>
+                                </div>
+                                <div class="reservation-total-box" id="registerTotalBox">
+                                    <div class="total-item">合計料金(税込)：<strong id="registerTotalPrice">0円</strong></div>
+                                    <div class="total-item">合計所要時間：<strong id="registerTotalDuration">0分</strong></div>
+                                </div>
                             </div>
                         </div>
                         <div class="form-group-with-icon">
                             <div class="form-content">
-                                <label class="form-label" for="resource">担当者</label>
-                                <select class="form-input" id="resource">
+                                <label class="form-label" for="resourceStaff">担当者</label>
+                                <select class="form-input" id="resourceStaff">
                                     <option value="" selected>指定なし</option>
                                     <option value="userA">テストハナコ</option>
                                     <option value="userB">山田太郎</option>
@@ -814,14 +974,12 @@
                         </div>
                         <div class="form-group-with-icon">
                             <div class="form-content">
-                                <label class="form-label" for="resource">設備・機器類</label>
-                                <select class="form-input" id="resource">
+                                <label class="form-label" for="resourceEquipment">設備・機器類</label>
+                                <select class="form-input" id="resourceEquipment">
                                     <option value="" selected>指定なし</option>
                                     <option value="チェアA">チェアA</option>
                                     <option value="チェアB">チェアB</option>
                                     <option value="チェアC">チェアC</option>
-                                    <option value="テスト花子">テスト花子</option>
-                                    <option value="山田太郎">山田太郎</option>
                                 </select>
                             </div>
                         </div>
@@ -889,6 +1047,8 @@
                                         </select>
                                     </div>
                                 </div>
+                                <label class="form-label" for="blockMemo" style="margin-top: 12px;">メモ</label>
+                                <textarea class="form-textarea" id="blockMemo" rows="3" placeholder="メモ"></textarea>
                             </div>
                         </div>
                     </div>
@@ -897,15 +1057,15 @@
             </form>
             <div class="modal-actions">
                 <button type="button" class="modal-btn modal-btn-save" id="save" onclick="saveBlock()">登録</button>
-                <button type="button" class="modal-btn modal-btn-cancel" onclick="event.stopPropagation()">閉じる</button>
+                <button type="button" class="modal-btn modal-btn-cancel" id="cancelReservation" onclick="hideReservationModal()">閉じる</button>
             </div>
         </div>
     </div>
 
     <!-- 編集モーダル -->
 
-    <div class="reservation-modal" id="editModal" style="display: none;" onclick="hideEditModal()">
-        <div class="normal-modal" onclick="event.stopPropagation()">
+    <div class="reservation-modal" id="editModal" style="display: none;">
+        <div class="normal-modal">
             <div class="modal-header">
                 <h3 class="modal-title" style="display: flex; align-items: center; gap: 4px;"><span class="modal-title-icon" aria-hidden="true">✏️</span><span>受付・予約編集（ID：112）</span></h3>
                 <button class="modal-close" id="closeEditModal" onclick="hideEditModal()">×</button>
@@ -942,6 +1102,12 @@
                                     </select>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                    <div class="form-group-with-icon tryServ-guest-count-field" id="editGuestCountRow">
+                        <div class="form-content">
+                            <label class="form-label" for="editGuestCount">人数 <span class="required">*</span></label>
+                            <input type="text" class="form-input" id="editGuestCount" inputmode="numeric" pattern="[0-9]*" maxlength="5" autocomplete="off">
                         </div>
                     </div>
                     <div class="form-group">
@@ -983,29 +1149,34 @@
 
                     <div class="form-group">
                         <label class="form-label" for="editEmail">メールアドレス</label>
-                        <input type="email" class="form-input" id="editEmail" value=xxxxx@xxxx.xxxx">
+                        <input type="email" class="form-input" id="editEmail" value="xxxxx@xxxx.xxxx">
+                        <small class="form-help">メールアドレスを入力しない場合、受付・予約完了メールは送信されません。</small>
                     </div>
 
                 </div>
 
                 <div class="customer-section">
 
-                    <div class="form-group-with-icon tryServ-guest-count-field" id="editGuestCountRow">
-                        <div class="form-content">
-                            <label class="form-label" for="editGuestCount">人数 <span class="required">*</span></label>
-                            <input type="text" class="form-input" id="editGuestCount" inputmode="numeric" pattern="[0-9]*" maxlength="5" autocomplete="off">
-                        </div>
-                    </div>
                     <div class="form-group-with-icon">
                         <div class="form-content">
                             <label class="form-label" for="editMenu">メニュー <span class="required">*</span></label>
-                            <select class="form-input" id="editMenu" required>
+                            <select class="form-input" id="editMenu" required onchange="onReservationMenuChange('edit')">
                                 <option value="">選択してください</option>
-                                <option value="カット" selected>カット(30分)</option>
-                                <option value="シャンプー">シャンプー(（)30分）</option>
-                                <option value="カット+シャンプー">カット+シャンプー(60分)</option>
-                                <option value="フルコース">フルコース(120分)</option>
+                                <option value="カット" data-price="4000" data-duration="30" data-groups="1" selected>カット(30分 / 4,000円)</option>
+                                <option value="シャンプー" data-price="4000" data-duration="30" data-groups="1,2">シャンプー(30分 / 4,000円)</option>
+                                <option value="カット+シャンプー" data-price="7000" data-duration="60" data-groups="1">カット+シャンプー(60分 / 7,000円)</option>
+                                <option value="フルコース" data-price="12000" data-duration="120" data-groups="1,2">フルコース(120分 / 12,000円)</option>
                             </select>
+                        </div>
+                    </div>
+                    <div class="form-group-with-icon" id="editOptionMenuRow">
+                        <div class="form-content">
+                            <label class="form-label">オプションメニュー</label>
+                            <div class="option-menu-check-list" id="editOptionMenuList"></div>
+                            <div class="reservation-total-box" id="editTotalBox">
+                                <div class="total-item">合計料金(税込)：<strong id="editTotalPrice">0円</strong></div>
+                                <div class="total-item">合計所要時間：<strong id="editTotalDuration">0分</strong></div>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group-with-icon">
@@ -1057,8 +1228,8 @@
     </div>
 
     <!-- 受付詳細モーダル -->
-    <div class="popup-overlay" id="detailModalOverlay" onclick="hideReservationDetailModal()">
-        <div class="reservation-modal" id="detailModal" onclick="event.stopPropagation()">
+    <div class="popup-overlay" id="detailModalOverlay">
+        <div class="reservation-modal" id="detailModal">
             <div class="modal-header">
                 <h2 class="modal-title" id="detailModalTitle">受付詳細</h2>
             </div>
@@ -1077,8 +1248,8 @@
         </div>
     </div>
 
-    <div class="reservation-modal" id="printModalOverlay" style="display: none;" onclick="hidePrintModal()">
-        <div class="normal-modal" onclick="event.stopPropagation()">
+    <div class="reservation-modal" id="printModalOverlay" style="display: none;">
+        <div class="normal-modal">
             <div class="modal-header">
                 <h3 class="modal-title">📄 受付情報印刷</h3>
                 <button class="modal-close" onclick="hidePrintModal()">×</button>
@@ -1263,6 +1434,99 @@
 
         const SCHEDULE_SLOT_MINUTES = 15;
 
+        // ===== オプションメニュー（受付登録・編集） =====
+        const RESERVATION_OPTION_MENUS = {
+            '1': { id: '1', name: 'ヘアオイル', price: 500, duration: 0, groupIds: ['1'] },
+            '2': { id: '2', name: 'ダメージケア', price: 1500, duration: 15, groupIds: ['1'] },
+            '3': { id: '3', name: 'リタッチ', price: 2000, duration: 30, groupIds: ['2'] },
+            '4': { id: '4', name: 'フルカラー追加', price: 3000, duration: 45, groupIds: ['2'] },
+            '5': { id: '5', name: 'ヘッドスパ', price: '', duration: 20, groupIds: ['1'] },
+            '6': { id: '6', name: 'ブロー仕上げ', price: 800, duration: '', groupIds: ['1'] },
+            '7': { id: '7', name: '相談のみ', price: '', duration: '', groupIds: ['1', '2'] }
+        };
+
+        function formatOptionDurationLabel(duration) {
+            if (duration === '' || duration === null || duration === undefined) return '—';
+            return Number(duration) + '分';
+        }
+
+        function formatOptionPriceLabel(price) {
+            if (price === '' || price === null || price === undefined) return '—';
+            return Number(price).toLocaleString('ja-JP') + '円';
+        }
+
+        /** メニューと同じ並び: (所要時間 / 料金) */
+        function formatOptionMenuMeta(o) {
+            return '(' + formatOptionDurationLabel(o.duration) + ' / ' + formatOptionPriceLabel(o.price) + ')';
+        }
+
+        function getOptionsForGroups(groupCsv) {
+            var groups = (groupCsv || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+            if (!groups.length) return [];
+            return Object.keys(RESERVATION_OPTION_MENUS).map(function(id) {
+                return RESERVATION_OPTION_MENUS[id];
+            }).filter(function(o) {
+                return o.groupIds.some(function(g){ return groups.indexOf(g) !== -1; });
+            });
+        }
+
+        function renderReservationOptionList(mode, selectedIds) {
+            selectedIds = selectedIds || [];
+            var menuSel = document.getElementById(mode === 'edit' ? 'editMenu' : 'menu');
+            var listEl = document.getElementById(mode === 'edit' ? 'editOptionMenuList' : 'registerOptionMenuList');
+            if (!menuSel || !listEl) return;
+            var opt = menuSel.options[menuSel.selectedIndex];
+            if (!opt || !opt.value) {
+                listEl.innerHTML = '<div class="opt-meta">メニューを選択すると選択可能になります</div>';
+                updateReservationTotals(mode);
+                return;
+            }
+            var options = getOptionsForGroups(opt.getAttribute('data-groups') || '');
+            if (!options.length) {
+                listEl.innerHTML = '<div class="opt-meta">このメニューに紐づくオプションはありません</div>';
+                updateReservationTotals(mode);
+                return;
+            }
+            listEl.innerHTML = options.map(function(o) {
+                var checked = selectedIds.indexOf(o.id) !== -1 ? ' checked' : '';
+                var priceAttr = (o.price === '' || o.price === null || o.price === undefined) ? '' : o.price;
+                var durationAttr = (o.duration === '' || o.duration === null || o.duration === undefined) ? '' : o.duration;
+                return '<label><input type="checkbox" value="' + o.id + '" data-price="' + priceAttr + '" data-duration="' + durationAttr + '"' + checked + ' onchange="updateReservationTotals(\'' + mode + '\')">' +
+                    '<span>' + o.name + ' <span class="opt-meta">' + formatOptionMenuMeta(o) + '</span></span></label>';
+            }).join('');
+            updateReservationTotals(mode);
+        }
+
+        function onReservationMenuChange(mode) {
+            renderReservationOptionList(mode, []);
+        }
+
+        function updateReservationTotals(mode) {
+            var menuSel = document.getElementById(mode === 'edit' ? 'editMenu' : 'menu');
+            var listEl = document.getElementById(mode === 'edit' ? 'editOptionMenuList' : 'registerOptionMenuList');
+            var priceEl = document.getElementById(mode === 'edit' ? 'editTotalPrice' : 'registerTotalPrice');
+            var durEl = document.getElementById(mode === 'edit' ? 'editTotalDuration' : 'registerTotalDuration');
+            if (!menuSel || !priceEl || !durEl) return;
+            var opt = menuSel.options[menuSel.selectedIndex];
+            var price = opt && opt.value ? Number(opt.getAttribute('data-price') || 0) : 0;
+            var duration = opt && opt.value ? Number(opt.getAttribute('data-duration') || 0) : 0;
+            if (listEl) {
+                listEl.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) {
+                    var p = cb.getAttribute('data-price');
+                    var d = cb.getAttribute('data-duration');
+                    if (p !== '' && p !== null) price += Number(p) || 0;
+                    if (d !== '' && d !== null) duration += Number(d) || 0;
+                });
+            }
+            priceEl.textContent = price.toLocaleString('ja-JP') + '円';
+            durEl.textContent = duration + '分';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            renderReservationOptionList('edit', ['1']);
+            updateReservationTotals('register');
+        });
+
         const menuConfig = {
             'カット': { prepTime: 10, color: '#E5E7EB', borderColor: '#d1d5db', prepBoundaryColor: '#9ca3af' },
             'シャンプー': { prepTime: 10, color: '#E5E7EB', borderColor: '#d1d5db' },
@@ -1280,8 +1544,136 @@
 
         function parseDurationMinutes(serviceStr) {
             if (!serviceStr) return 15;
-            const m = (serviceStr || '').match(/\((\d+)\s*分\)/);
-            return m ? Math.max(15, parseInt(m[1], 10)) : 15;
+            // 「カット(30分)」および「カット(30分 / 4,000円)」両対応
+            const m = (serviceStr || '').match(/\((\d+)\s*分/);
+            return m ? Math.max(0, parseInt(m[1], 10)) : 15;
+        }
+
+        function getMenuDurationMinutes(entry) {
+            return parseDurationMinutes(entry && entry.service);
+        }
+
+        function getOptionDurationMinutes(entry) {
+            if (!entry) return 0;
+            if (entry.optionDuration != null && entry.optionDuration !== '') {
+                return Math.max(0, parseInt(entry.optionDuration, 10) || 0);
+            }
+            return 0;
+        }
+
+        /** メニュー＋オプション合算の施術所要時間 */
+        function getReservationSpanMinutes(entry) {
+            return getMenuDurationMinutes(entry) + getOptionDurationMinutes(entry);
+        }
+
+        function parseServiceName(serviceStr) {
+            if (!serviceStr) return '';
+            const m = String(serviceStr).match(/^(.+?)\s*\(/);
+            return m ? m[1].trim() : String(serviceStr).trim();
+        }
+
+        function parseServicePrice(serviceStr) {
+            if (!serviceStr) return null;
+            const m = String(serviceStr).match(/\/\s*([\d,]+)\s*円/);
+            return m ? parseInt(m[1].replace(/,/g, ''), 10) : null;
+        }
+
+        /** 印刷用: 「カット(30分 / 4,000円)」→「カット(30分)」のように金額を除く */
+        function stripServicePrice(serviceStr) {
+            if (!serviceStr) return '';
+            return String(serviceStr).replace(/\s*\/\s*[\d,]+\s*円/g, '');
+        }
+
+        function getOptionPriceByName(name) {
+            const keys = Object.keys(RESERVATION_OPTION_MENUS);
+            for (let i = 0; i < keys.length; i++) {
+                const opt = RESERVATION_OPTION_MENUS[keys[i]];
+                if (opt.name === name) {
+                    if (opt.price === '' || opt.price === null || opt.price === undefined) return 0;
+                    return Number(opt.price) || 0;
+                }
+            }
+            return 0;
+        }
+
+        function getOptionByName(name) {
+            const keys = Object.keys(RESERVATION_OPTION_MENUS);
+            for (let i = 0; i < keys.length; i++) {
+                const opt = RESERVATION_OPTION_MENUS[keys[i]];
+                if (opt.name === name) return opt;
+            }
+            return null;
+        }
+
+        /**
+         * 印刷用オプション表示（金額なし）
+         * 所要時間が設定されている場合のみ「名前(15分)」形式
+         */
+        function formatPrintOptionLabel(name) {
+            const raw = String(name || '').trim();
+            if (!raw) return '';
+            const opt = getOptionByName(raw);
+            if (!opt) return raw;
+            if (opt.duration === '' || opt.duration === null || opt.duration === undefined) {
+                return raw;
+            }
+            return raw + '(' + Number(opt.duration) + '分)';
+        }
+
+        function formatPrintOptionMenus(optionMenus) {
+            return (optionMenus || []).filter(Boolean).map(formatPrintOptionLabel);
+        }
+
+        function getReservationTotalPrice(entry) {
+            if (!entry) return 0;
+            if (entry.totalPrice != null && entry.totalPrice !== '') {
+                return Math.max(0, parseInt(entry.totalPrice, 10) || 0);
+            }
+            const menuPrice = parseServicePrice(entry.service) || 0;
+            const optionMenus = (entry.optionMenus || []).filter(Boolean);
+            let optionPrice = 0;
+            for (let i = 0; i < optionMenus.length; i++) {
+                optionPrice += getOptionPriceByName(optionMenus[i]);
+            }
+            return menuPrice + optionPrice;
+        }
+
+        /**
+         * スケジュールセル表示用ラベル（料金は出さない）
+         * 例: パーマ + ダメージケア（75分） / カット（30分）
+         */
+        function formatScheduleReservationLabel(entry) {
+            if (!entry) return '';
+            const optionMenus = (entry.optionMenus || []).filter(Boolean);
+            const totalMin = getReservationSpanMinutes(entry);
+            const menuName = parseServiceName(entry.service) || entry.service || 'メニュー';
+            if (!optionMenus.length) {
+                return menuName + '（' + totalMin + '分）';
+            }
+            return menuName + ' + ' + optionMenus.join(' / ') + '（' + totalMin + '分）';
+        }
+
+        /** 複数枠ラベルが枠高さを超える場合は末尾を…で省略（省略記号の後ろが出ないようにする） */
+        function truncateScheduleLabelToFit(el) {
+            if (!el || !el.classList.contains('is-span-fill')) return;
+            const full = el.getAttribute('data-full-label') || el.textContent || '';
+            el.setAttribute('data-full-label', full);
+            el.setAttribute('title', full);
+            el.textContent = full;
+            if (el.scrollHeight <= el.clientHeight + 1) return;
+
+            let lo = 0;
+            let hi = full.length;
+            while (lo < hi) {
+                const mid = Math.ceil((lo + hi) / 2);
+                el.textContent = full.slice(0, mid) + '…';
+                if (el.scrollHeight <= el.clientHeight + 1) {
+                    lo = mid;
+                } else {
+                    hi = mid - 1;
+                }
+            }
+            el.textContent = (lo > 0 ? full.slice(0, lo) : '') + '…';
         }
 
         function getMenuConfigForService(serviceStr) {
@@ -1317,16 +1709,28 @@
             return getMenuConfigForReservation(reservation, resourceSchedule).prepTime;
         }
 
+        function hasOptionAfterMenu(reservation) {
+            // メニュー枠にオプション所要時間を含めるため、別枠のオプションは続かない
+            return false;
+        }
+
         function applyPrepBoundaryColor(cell, menuCfg) {
             cell.style.setProperty('--prep-boundary-color', menuCfg.prepBoundaryColor || menuCfg.borderColor || '#9ca3af');
         }
 
-        function applyReservationSpanStyle(cell, menuCfg, role, hasPrepAfter) {
+        /** hasContinuationAfter: 直後に準備が続く場合 true */
+        function applyReservationSpanStyle(cell, menuCfg, role, hasContinuationAfter) {
             const borderColor = menuCfg.borderColor || menuCfg.color;
             const solidLine = '1px solid ' + borderColor;
+            const isDayBoundary = cell.classList.contains('schedule-cell--day-boundary');
             cell.style.backgroundColor = menuCfg.color;
             cell.style.border = 'none';
-            cell.style.borderLeft = solidLine;
+            // 日付境界は ::after の緑線を優先（ぶつ切り防止のため予約の左枠は付けない）
+            if (isDayBoundary) {
+                cell.style.borderLeft = 'none';
+            } else {
+                cell.style.borderLeft = solidLine;
+            }
             cell.style.borderRight = solidLine;
             if (role === 'prep') {
                 applyPrepBoundaryColor(cell, menuCfg);
@@ -1334,7 +1738,7 @@
                 cell.style.borderBottom = solidLine;
                 return;
             }
-            if (hasPrepAfter) {
+            if (hasContinuationAfter) {
                 applyPrepBoundaryColor(cell, menuCfg);
             }
             if (role === 'start' || role === 'single') {
@@ -1342,7 +1746,7 @@
             } else {
                 cell.style.borderTop = 'none';
             }
-            if (role === 'end' && hasPrepAfter) {
+            if (role === 'end' && hasContinuationAfter) {
                 cell.style.borderBottom = 'none';
             } else if (role === 'end' || role === 'single') {
                 cell.style.borderBottom = solidLine;
@@ -1372,7 +1776,8 @@
             for (let i = 0; i < starts.length; i++) {
                 const startTime = starts[i].startTime;
                 const entry = starts[i].entry;
-                const durationMin = parseDurationMinutes(entry.service);
+                // メニュー＋オプションを連続した施術枠として扱う
+                const durationMin = getReservationSpanMinutes(entry);
                 const startMin = timeToMinutes(startTime);
                 const endMin = startMin + durationMin;
                 if (slotMin >= startMin && slotMin < endMin) {
@@ -1395,14 +1800,20 @@
             return null;
         }
 
+        /** オプションはメニュー枠に統合するため、別枠情報は返さない（互換のため関数は残置） */
+        function getOptionSlotInfo(resourceSchedule, slotTime) {
+            return null;
+        }
+
         function getPrepSlotInfo(resourceSchedule, slotTime) {
             const starts = getReservationStartsForResource(resourceSchedule);
             const slotMin = timeToMinutes(slotTime);
             for (let i = 0; i < starts.length; i++) {
                 const startTime = starts[i].startTime;
                 const entry = starts[i].entry;
-                const durationMin = parseDurationMinutes(entry.service);
-                const prepStartMin = timeToMinutes(startTime) + durationMin;
+                const menuMin = getMenuDurationMinutes(entry);
+                const optionMin = getOptionDurationMinutes(entry);
+                const prepStartMin = timeToMinutes(startTime) + menuMin + optionMin;
                 if (slotMin === prepStartMin) {
                     const prepMinutes = getPrepMinutesForReservation(entry, resourceSchedule);
                     if (prepMinutes <= 0) return null;
@@ -1428,36 +1839,114 @@
 
         const scheduleData = {
             [formatDate(today)]: {
-                'A': {
-                    '10:00': {customer: 'テスト花子', customerKana: 'テストハナコ', service: 'パーマ(60分)', reservationId: '3', guestCount: 3, lastName:'テスト', firstName:'花子', lastNameKana:'テスト', firstNameKana:'ハナコ'},
+                'A': {},
+                'B': {
+                    // オプションなし
+                    '11:00': {
+                        customer: '山田次郎', customerKana: 'ヤマダジロウ',
+                        service: 'カット(30分 / 4,000円)',
+                        optionMenus: [],
+                        optionDuration: 0,
+                        totalPrice: 4000,
+                        reservationId: '5', guestCount: 1,
+                        lastName:'山田', firstName:'次郎', lastNameKana:'ヤマダ', firstNameKana:'ジロウ'
+                    },
                 },
-                'B': {},
-                'C': {},
+                'C': {
+                    // ラベル省略確認用（所要時間は短く、オプション名が多くはみ出す）
+                    '14:00': {
+                        customer: '省略確認太郎', customerKana: 'ショウリャクカクニンタロウ',
+                        service: 'カット(30分 / 4,000円)',
+                        optionMenus: [
+                            'ヘアオイル',
+                            'ダメージケア',
+                            'ヘッドスパ',
+                            'ブロー仕上げ',
+                            'リタッチ',
+                            'フルカラー追加',
+                            '相談のみ'
+                        ],
+                        optionDuration: 0,
+                        totalPrice: 11800,
+                        reservationId: '7', guestCount: 1,
+                        lastName: '省略確認', firstName: '太郎', lastNameKana: 'ショウリャクカクニン', firstNameKana: 'タロウ',
+                        comments: 'スケジュール表示の…省略確認用サンプルです。',
+                        notes: 'なし'
+                    },
+                },
                 'D': {},
                 'E': {}
             },
             [formatDate(tomorrow)]: {
-                'A': {},
+                'A': {
+                    // 一覧「選択」強調用（ID:3）※SPでは翌日開始日で表示
+                    '10:00': {
+                        customer: 'テスト花子', customerKana: 'テストハナコ',
+                        service: 'パーマ(60分 / 8,000円)',
+                        optionMenus: ['ダメージケア'],
+                        optionDuration: 15,
+                        totalPrice: 9500,
+                        reservationId: '3', guestCount: 3,
+                        lastName:'テスト', firstName:'花子', lastNameKana:'テスト', firstNameKana:'ハナコ'
+                    },
+                },
                 'B': {
-                    '10:00': {customer: 'テスト花子', customerKana: 'テストハナコ', service: 'カット(30分)', reservationId: '1', guestCount: 2, lastName:'テスト', firstName:'テスト', lastNameKana:'テスト', firstNameKana:'テスト'},
+                    // オプションなし
+                    '10:00': {
+                        customer: 'テスト花子', customerKana: 'テストハナコ',
+                        service: 'カット(30分 / 4,000円)',
+                        optionMenus: [],
+                        optionDuration: 0,
+                        totalPrice: 4000,
+                        reservationId: '1', guestCount: 2,
+                        lastName:'テスト', firstName:'テスト', lastNameKana:'テスト', firstNameKana:'テスト'
+                    },
                 },
                 'C': {},
                 'D': {
-                    '14:00': {customer: '田中太郎', customerKana: 'タナカタロウ', service: 'シャンプー(30分)', reservationId: '2', guestCount: 4, lastName:'田中', firstName:'太郎', lastNameKana:'田中', firstNameKana:'太郎'},
+                    // オプションあり（複数・合計30分）
+                    '14:00': {
+                        customer: '田中太郎', customerKana: 'タナカタロウ',
+                        service: 'シャンプー(30分 / 4,000円)',
+                        optionMenus: ['リタッチ'],
+                        optionDuration: 30,
+                        totalPrice: 6000,
+                        reservationId: '2', guestCount: 4,
+                        lastName:'田中', firstName:'太郎', lastNameKana:'田中', firstNameKana:'太郎'
+                    },
                 },
                 'E': {}
             },
             [formatDate(dayAfterTomorrow)]: {
                 'A': {},
                 'B': {},
-                'C': {},
+                'C': {
+                    // オプション多数（折り返し確認用）
+                    '13:00': {
+                        customer: '佐藤美咲', customerKana: 'サトウミサキ',
+                        service: 'カット+シャンプー(60分 / 7,000円)',
+                        optionMenus: ['ヘアオイル', 'ダメージケア', 'ヘッドスパ', 'ブロー仕上げ', 'リタッチ', 'フルカラー追加'],
+                        optionDuration: 45,
+                        totalPrice: 18800,
+                        reservationId: '6', guestCount: 2,
+                        lastName:'佐藤', firstName:'美咲', lastNameKana:'サトウ', firstNameKana:'ミサキ'
+                    },
+                },
                 'D': {},
                 'E': {}
             },
             '2025-10-12': {
                 'A': {},
                 'B': {
-                    '10:00': {customer: 'テスト花子', customerKana: 'テストハナコ', service: 'カット(30分)', reservationId: '4', guestCount: 2, lastName:'テスト', firstName:'テスト', lastNameKana:'テスト', firstNameKana:'テスト'},
+                    '10:00': {
+                        customer: 'テスト花子', customerKana: 'テストハナコ',
+                        service: 'カット(30分 / 4,000円)',
+                        optionMenus: [],
+                        optionDuration: 0,
+                        totalPrice: 4000,
+                        reservationId: '4', guestCount: 2,
+                        lastName:'テスト', firstName:'テスト', lastNameKana:'テスト', firstNameKana:'テスト'
+                    },
                 },
                 'C': {},
                 'D': {},
@@ -1497,9 +1986,12 @@
             }
         }
 
-        // 日付をフォーマット
+        // 日付をフォーマット（ローカル日付。toISOString は UTC のため JST 翌日0時が前日になる）
         function formatDate(date) {
-            return date.toISOString().split('T')[0];
+            var y = date.getFullYear();
+            var m = String(date.getMonth() + 1).padStart(2, '0');
+            var d = String(date.getDate()).padStart(2, '0');
+            return y + '-' + m + '-' + d;
         }
 
         // 日付を日本語フォーマット
@@ -1537,11 +2029,41 @@
         // スケジュールグリッドを生成
         function generateScheduleGrid() {
             const grid = document.getElementById('scheduleGrid');
-            grid.innerHTML = '';
+            if (!grid) return;
 
-            // mainの幅を取得
+            // レイアウト未確定時は中身を消さず再試行する
+            // （幅0のまま clear すると、遷移直後や端末エミュで真っ白になる）
             const mainElement = document.querySelector('.main');
-            const mainWidth = mainElement.offsetWidth;
+            const containerElement = document.querySelector('.schedule-container');
+            let mainWidth = mainElement ? mainElement.offsetWidth : 0;
+            if (mainWidth <= 0 && containerElement) {
+                mainWidth = containerElement.offsetWidth || 0;
+            }
+            if (mainWidth <= 0) {
+                mainWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+            }
+            if (mainWidth <= 0) {
+                const attempt = (generateScheduleGrid._retryAttempt || 0) + 1;
+                generateScheduleGrid._retryAttempt = attempt;
+                if (attempt <= 12) {
+                    const delay = attempt <= 2 ? 0 : Math.min(50 * (attempt - 1), 300);
+                    const retry = function () { generateScheduleGrid(); };
+                    if (delay === 0) {
+                        requestAnimationFrame(retry);
+                    } else {
+                        setTimeout(retry, delay);
+                    }
+                }
+                return;
+            }
+            generateScheduleGrid._retryAttempt = 0;
+
+            grid.innerHTML = '';
+            document.querySelectorAll('.reservation-popup.block-memo-popup').forEach(function(el) {
+                if (el.parentNode) {
+                    el.parentNode.removeChild(el);
+                }
+            });
 
             // スケジュールセクションの利用可能幅を計算
             // メインのパディング(22px * 2) + スケジュールセクションのパディング(18px * 2) + ボーダー(2px)
@@ -1670,12 +2192,13 @@
 
                         // 日付の間に線を追加（2日目以降の最初のリソース）
                         if (i > 0 && j === 0) {
-                            cell.style.borderLeft = '2px solid #10b981';
+                            cell.classList.add('schedule-cell--day-boundary');
                         }
 
                         // 担当者リソース（D, E）と設備リソース（A, B, C）の境界に濃い線を追加
                         if (resource === 'A') {
-                            cell.style.borderLeft = '2px solid #cdcdcd';
+                            cell.classList.remove('schedule-cell--day-boundary');
+                            cell.classList.add('schedule-cell--resource-group-boundary');
                         }
 
                         // ブロック状態をチェック
@@ -1712,6 +2235,31 @@
                                 cell.setAttribute('data-block-resource', resource);
                             }
 
+                            // 受付・予約の簡易情報と同様に、オンマウスでメモをポップアップ表示
+                            const blockPopup = document.createElement('div');
+                            blockPopup.className = 'reservation-popup block-memo-popup';
+                            const blockMemoText = (blockData && blockData.memo) ? String(blockData.memo) : '';
+                            blockPopup.innerHTML = `
+                            <div class="popup-item">
+                                <div class="popup-icon icon-notes"></div>
+                                <div class="popup-content">
+                                    <div class="popup-label">メモ</div>
+                                    <div class="popup-text">${escapeHtml(blockMemoText || '－')}</div>
+                                </div>
+                            </div>
+                        `;
+                            document.body.appendChild(blockPopup);
+                            cell.addEventListener('mouseenter', (e) => {
+                                if (window.matchMedia('(max-width: 768px)').matches ||
+                                    (typeof window.tryServIsSpContent === 'function' && window.tryServIsSpContent())) {
+                                    return;
+                                }
+                                showReservationPopup(e, blockPopup);
+                            });
+                            cell.addEventListener('mouseleave', () => {
+                                hideReservationPopup(blockPopup);
+                            });
+
                             // ブロックされた時間帯のクリックイベント（ブロック解除確認）
                             cell.addEventListener('click', (e) => {
                                 e.preventDefault();
@@ -1736,14 +2284,22 @@
                             const reservation = slotReservation.entry;
                             const menuCfg = getMenuConfigForReservation(reservation, resourceSchedule);
                             const hasPrepAfter = getPrepMinutesForReservation(reservation, resourceSchedule) > 0;
+                            const hasContinuationAfter = hasPrepAfter;
                             cell.className += ' reserved reservation-span-' + slotReservation.role;
-                            applyReservationSpanStyle(cell, menuCfg, slotReservation.role, hasPrepAfter);
+                            applyReservationSpanStyle(cell, menuCfg, slotReservation.role, hasContinuationAfter);
 
                             if (slotReservation.isStart) {
                             const reservationInfo = document.createElement('div');
-                            reservationInfo.className = 'reservation-slot-content';
-                            if (reservation.service) {
-                                reservationInfo.textContent = reservation.service;
+                            const spanMinutes = getReservationSpanMinutes(reservation);
+                            const spanSlots = Math.max(1, Math.ceil(spanMinutes / SCHEDULE_SLOT_MINUTES));
+                            reservationInfo.className = 'reservation-slot-content' + (spanSlots > 1 ? ' is-span-fill' : '');
+                            if (spanSlots > 1) {
+                                cell.style.setProperty('--reservation-span-slots', String(spanSlots));
+                            }
+                            const labelText = formatScheduleReservationLabel(reservation);
+                            reservationInfo.textContent = labelText;
+                            if (spanSlots > 1) {
+                                reservationInfo.setAttribute('data-full-label', labelText);
                             }
 
                             const popup = document.createElement('div');
@@ -1802,6 +2358,10 @@
                             document.body.appendChild(popup);
 
                             reservationInfo.addEventListener('mouseenter', (e) => {
+                                if (window.matchMedia('(max-width: 768px)').matches ||
+                                    (typeof window.tryServIsSpContent === 'function' && window.tryServIsSpContent())) {
+                                    return;
+                                }
                                 showReservationPopup(e, popup);
                             });
 
@@ -1843,6 +2403,18 @@
                     }
                 }
             });
+
+            // レイアウト確定後に複数枠ラベルを枠内へ収まるよう…省略
+            requestAnimationFrame(function () {
+                document.querySelectorAll('.schedule-cell .reservation-slot-content.is-span-fill').forEach(function (el) {
+                    truncateScheduleLabelToFit(el);
+                });
+            });
+
+            // 一覧「選択」からの強調を再適用（再描画で消えないように）
+            if (window.pendingListHighlightId) {
+                highlightReservationCells(String(window.pendingListHighlightId));
+            }
         }
 
         // 日付入力フィールドを更新
@@ -2019,138 +2591,98 @@
             hideCalendarPopup();
         }
 
-        // 新規受付モーダル機能
+        // 新規受付：モーダル表示
         function showReservationModal() {
-            const modal = document.getElementById('reservationModal');
-
-            modal.style.display = 'flex';
-
-            // 現在の日時をデフォルト値として設定
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-
-            document.getElementById('reservationDate').value = `${year}-${month}-${day}`;
-            mockSyncGuestCountFieldVisibility();
+            openReservationRegisterModal({});
         }
 
         // 指定された日時で新規受付モーダルを表示
         function showReservationModalWithDateTime(dateStr, timeStr) {
-            const modal = document.getElementById('reservationModal');
-            switchTab('newReservation'); // 新規受付タブを活性化
-            modal.style.display = 'flex';
-
-            // 顧客入力モードをリセット（顧客検索モードに戻す）
-            switchCustomerInputMode('search');
-            // 選択された顧客情報をクリア
-            selectedCustomerData = null;
-
-            // 指定された日時をデフォルト値として設定
-            const [year, month, day] = dateStr.split('-');
-            const [hours, minutes] = timeStr.split(':');
-
-            // YYYY/MM/DD形式にフォーマット
-            const formattedMonth = month.padStart(2, '0');
-            const formattedDay = day.padStart(2, '0');
-            document.getElementById('reservationDate').value = `${year}/${formattedMonth}/${formattedDay}`;
-
-            // 時間を設定
-            const startHourSelect = document.getElementById('startHour');
-            const startMinuteSelect = document.getElementById('startMinute');
-            if (startHourSelect) {
-                startHourSelect.value = hours || '09';
-            }
-            if (startMinuteSelect) {
-                startMinuteSelect.value = minutes || '00';
-            }
-
-            // ブロック予約タブの日時も設定（押下したセルの日時を使用）
-            const blockDateInput = document.getElementById('blockDate');
-            const blockStartHourSelect = document.getElementById('blockStartHour');
-            const blockStartMinuteSelect = document.getElementById('blockStartMinute');
-            const blockEndHourSelect = document.getElementById('blockEndHour');
-            const blockEndMinuteSelect = document.getElementById('blockEndMinute');
-
-            if (blockDateInput) {
-                // date型のinputはYYYY-MM-DD形式
-                blockDateInput.value = dateStr;
-            }
-
-            if (blockStartHourSelect) {
-                blockStartHourSelect.value = hours || '09';
-            }
-            if (blockStartMinuteSelect) {
-                blockStartMinuteSelect.value = minutes || '00';
-            }
-
-            // 終了時間は開始時間の15分後をデフォルトとする
-            const startHourInt = parseInt(hours || '09');
-            const startMinuteInt = parseInt(minutes || '00');
-            let endMinuteInt = startMinuteInt + 15;
-            let endHourInt = startHourInt;
-
-            // 60分を超えた場合は時間を繰り上げ
-            if (endMinuteInt >= 60) {
-                endMinuteInt = endMinuteInt - 60;
-                endHourInt = endHourInt + 1;
-            }
-
-            const endHourStr = endHourInt.toString().padStart(2, '0');
-            const endMinuteStr = endMinuteInt.toString().padStart(2, '0');
-
-            if (blockEndHourSelect) {
-                blockEndHourSelect.value = endHourStr;
-            }
-            if (blockEndMinuteSelect) {
-                blockEndMinuteSelect.value = endMinuteStr;
-            }
-
-            // 初期状態：顧客情報は入力可能
-            const customerNameField = document.getElementById('editCustomerName');
-            const customerKanaField = document.getElementById('editCustomerNameKana');
-            const phoneField = document.getElementById('editPhoneNumber');
-            const emailField = document.getElementById('editEmail');
-            const directInputBtn = document.getElementById('directInputBtn');
-
-            if (customerNameField) {
-                customerNameField.value = '';
-                customerNameField.disabled = false;
-            }
-            if (customerKanaField) {
-                customerKanaField.value = '';
-                customerKanaField.disabled = false;
-            }
-            if (phoneField) {
-                phoneField.value = '';
-                phoneField.disabled = false;
-            }
-            if (emailField) {
-                emailField.value = '';
-                emailField.disabled = false;
-            }
-            if (directInputBtn) directInputBtn.style.display = 'none';
-            mockSyncGuestCountFieldVisibility();
+            openReservationRegisterModal({
+                date: dateStr,
+                time: timeStr,
+                resource: window.selectedResourceForBlock || ''
+            });
         }
 
-        function hideReservationModal() {
-            const modal = document.getElementById('reservationModal');
+        function formatDateSlash(dateStr) {
+            if (!dateStr) return '';
+            if (dateStr.indexOf('/') !== -1) return dateStr;
+            var parts = String(dateStr).split('-');
+            if (parts.length === 3) return parts[0] + '/' + parts[1] + '/' + parts[2];
+            return dateStr;
+        }
 
-            modal.style.display = 'none';
+        function formatDateHyphen(dateStr) {
+            if (!dateStr) return '';
+            if (dateStr.indexOf('-') !== -1) return dateStr;
+            var parts = String(dateStr).split('/');
+            if (parts.length === 3) return parts[0] + '-' + parts[1] + '-' + parts[2];
+            return dateStr;
+        }
 
-            // フォームをリセット
-            document.getElementById('reservationDate').value = '2025/09/18';
-            document.getElementById('startHour').value = '15';
-            document.getElementById('startMinute').value = '30';
-            document.getElementById('endHour').value = '16';
-            document.getElementById('endMinute').value = '00';
-            document.getElementById('resource').value = 'チェアA';
-            document.getElementById('menu').value = 'カット（30分）';
-            document.getElementById('facilityMemo').value = '';
-            document.getElementById('comment').value = 'ロングです';
-            document.getElementById('customerSearch').value = '';
+        function setSelectValue(selectEl, value) {
+            if (!selectEl || value == null || value === '') return;
+            var target = String(value);
+            for (var i = 0; i < selectEl.options.length; i++) {
+                var opt = selectEl.options[i];
+                if (opt.value === target || opt.text.indexOf(target) !== -1 || target.indexOf(opt.value) !== -1) {
+                    selectEl.selectedIndex = i;
+                    return;
+                }
+            }
+        }
+
+        function openReservationRegisterModal(opts) {
+            opts = opts || {};
+            var modal = document.getElementById('reservationModal');
+            if (!modal) return;
+
+            switchTab('newReservation');
+
+            var dateSlash = formatDateSlash(opts.date);
+            var dateHyphen = formatDateHyphen(opts.date);
+            var reservationDate = modal.querySelector('#reservationDate');
+            var blockDate = modal.querySelector('#blockDate');
+            if (dateSlash && reservationDate) reservationDate.value = dateSlash;
+            if (dateHyphen && blockDate) blockDate.value = dateHyphen;
+
+            if (opts.time) {
+                var tm = String(opts.time).split(':');
+                var startHour = modal.querySelector('#startHour');
+                var startMinute = modal.querySelector('#startMinute');
+                var blockStartHour = modal.querySelector('#blockStartHour');
+                var blockStartMinute = modal.querySelector('#blockStartMinute');
+                var blockEndHour = modal.querySelector('#blockEndHour');
+                var blockEndMinute = modal.querySelector('#blockEndMinute');
+                if (tm[0]) {
+                    if (startHour) startHour.value = tm[0];
+                    if (blockStartHour) blockStartHour.value = tm[0];
+                }
+                if (tm[1]) {
+                    if (startMinute) startMinute.value = tm[1];
+                    if (blockStartMinute) blockStartMinute.value = tm[1];
+                }
+                var sh = parseInt(tm[0] || '15', 10);
+                var sm = parseInt(tm[1] || '0', 10) + 15;
+                if (sm >= 60) { sm -= 60; sh += 1; }
+                if (blockEndHour) blockEndHour.value = String(sh).padStart(2, '0');
+                if (blockEndMinute) blockEndMinute.value = String(sm).padStart(2, '0');
+            }
+
+            if (opts.resource) {
+                var eq = modal.querySelector('#resourceEquipment');
+                setSelectValue(eq, opts.resource);
+            }
+
+            if (opts.tab === 'block') {
+                switchTab('blockReservation');
+            }
+
+            modal.style.display = 'flex';
+            if (typeof mockSyncGuestCountFieldVisibility === 'function') {
+                mockSyncGuestCountFieldVisibility();
+            }
         }
 
         // ブロックデータを管理する配列
@@ -2159,9 +2691,9 @@
         // タブ切り替え機能
         function switchTab(tabName) {
             // すべてのタブボタンからactiveクラスを削除
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('#reservationModal .tab-btn').forEach(btn => btn.classList.remove('active'));
             // すべてのタブコンテンツからactiveクラスを削除
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelectorAll('#reservationModal .tab-content').forEach(content => content.classList.remove('active'));
 
             if (tabName === 'newReservation') {
                 document.getElementById('newReservationTab').classList.add('active');
@@ -2172,53 +2704,16 @@
             }
         }
 
-        // 統合モーダル表示機能（新規受付用）
-        function showReservationModal() {
-            const modal = document.getElementById('reservationModal');
-            switchTab('newReservation'); // 新規受付タブを活性化
-            modal.style.display = 'flex';
-
-            // 顧客入力モードをリセット（顧客検索モードに戻す）
-            switchCustomerInputMode('search');
-            // 選択された顧客情報をクリア
-            selectedCustomerData = null;
-
-            // 初期状態：顧客情報は入力可能
-            const customerNameField = document.getElementById('editCustomerName');
-            const customerKanaField = document.getElementById('editCustomerNameKana');
-            const phoneField = document.getElementById('editPhoneNumber');
-            const emailField = document.getElementById('editEmail');
-            const directInputBtn = document.getElementById('directInputBtn');
-
-            if (customerNameField) {
-                customerNameField.value = '';
-                customerNameField.disabled = false;
-            }
-            if (customerKanaField) {
-                customerKanaField.value = '';
-                customerKanaField.disabled = false;
-            }
-            if (phoneField) {
-                phoneField.value = '';
-                phoneField.disabled = false;
-            }
-            if (emailField) {
-                emailField.value = '';
-                emailField.disabled = false;
-            }
-            if (directInputBtn) directInputBtn.style.display = 'none';
-            mockSyncGuestCountFieldVisibility();
-        }
-
-        // 統合モーダル非表示機能（受付ブロック用）
-        function hideBlockModal() {
-            const modal = document.getElementById('reservationModal');
-            modal.style.display = 'none';
-        }
-
+        // 統合モーダル非表示機能
         function hideReservationModal() {
             const modal = document.getElementById('reservationModal');
-            modal.style.display = 'none';
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function hideBlockModal() {
+            hideReservationModal();
         }
 
         // 印刷モーダル機能
@@ -2406,31 +2901,67 @@
 
             // 印刷用デモデータ（リソース「テスト花子」= D の列に表示）
             // キーは timeSlots と一致させる（'09:00' のようにゼロ埋め）
+            // オプション表示パターン:
+            //   - 時間あり / 時間0分 / 時間未設定 の混在
+            //   - 時間ありのみ
+            //   - オプションなし
+            //   - 時間未設定のみ
             const printDemoDataByResource = {
                 'D': {
                     '09:00': {
+                        // 時間0分(ヘアオイル) + 時間あり(ダメージケア15分)
                         customer: '田中　太郎',
                         customerKana: 'タナカ　タロウ',
                         guestCount: 2,
                         service: 'カット(30分)',
+                        optionMenus: ['ヘアオイル', 'ダメージケア'],
+                        totalDuration: 45,
                         comments: 'シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望です。シャンプーも希望で。',
                         notes: 'なし',
                         status: '受付済み'
                     },
-                    '09:30': {
+                    '09:45': {
+                        // オプション: 時間ありのみ（リタッチ30分）→ メニュー60+30=90分
                         customer: '林　次郎',
                         customerKana: 'ハヤシ　ジロウ',
                         guestCount: 3,
                         service: 'パーマ(60分)',
+                        optionMenus: ['リタッチ'],
+                        totalDuration: 90,
                         comments: 'なし',
                         notes: '敏感肌のお客様です。',
                         status: '受付済み'
                     },
-                    '11:00': {
+                    '11:30': {
+                        // オプションなし
                         customer: '見本　礼子',
                         customerKana: 'ミホン　レイコ',
                         guestCount: 4,
                         service: 'シャンプー・カット(90分)',
+                        comments: 'なし',
+                        notes: 'なし',
+                        status: '受付済み'
+                    },
+                    '13:30': {
+                        // オプション: 時間未設定(ブロー仕上げ) + 時間あり(ヘッドスパ20分)
+                        customer: '山田　花子',
+                        customerKana: 'ヤマダ　ハナコ',
+                        guestCount: 1,
+                        service: 'カット(30分)',
+                        optionMenus: ['ブロー仕上げ', 'ヘッドスパ'],
+                        totalDuration: 50,
+                        comments: 'なし',
+                        notes: 'なし',
+                        status: '受付済み'
+                    },
+                    '15:00': {
+                        // オプション: 時間未設定のみ（ブロー仕上げ・相談のみ）
+                        customer: '鈴木　一郎',
+                        customerKana: 'スズキ　イチロウ',
+                        guestCount: 2,
+                        service: 'シャンプー(30分)',
+                        optionMenus: ['ブロー仕上げ', '相談のみ'],
+                        totalDuration: 30,
                         comments: 'なし',
                         notes: 'なし',
                         status: '受付済み'
@@ -2470,18 +3001,27 @@
                         const resSlots = resSlotsForPage[col];
                         const reservation = resSlots[time];
                         const isStart = reservation && (reservation.customer || reservation.service);
-                        const slotDuration = isStart ? parseDurationMinutes(reservation.service) : 0;
-                        const rowspan = isStart ? Math.max(1, Math.round(slotDuration / 15)) : 0;
+                        // メニュー＋オプション合算の所要時間で rowspan し、後続15分枠も文字領域として使う
+                        const slotDuration = isStart
+                            ? (reservation.totalDuration
+                                || getReservationSpanMinutes(reservation)
+                                || parseDurationMinutes(reservation.service))
+                            : 0;
+                        const rowspan = isStart ? Math.max(1, Math.ceil(slotDuration / 15)) : 0;
 
                         if (isStart && rowspan > 0) {
                             rowspanRemaining[col] = rowspan - 1;
                             const customerName = (reservation.customer || '').trim();
                             const customerKana = (reservation.customerKana || '').trim();
                             const guestCount = mockFormatGuestCountDisplay(reservation.guestCount || reservation.totalGuests || reservation.TOTAL_GUESTS);
-                            const service = (reservation.service || '').trim();
+                            const service = stripServicePrice((reservation.service || '').trim());
+                            const optionMenus = formatPrintOptionMenus(reservation.optionMenus || []);
                             const comments = (reservation.comments || '').trim();
                             const notes = (reservation.notes || '').trim();
                             const status = (reservation.status || '受付待ち').trim();
+                            const optionHtml = optionMenus.length
+                                ? '<div class="print-option-menus">＋ ' + escapeHtml(optionMenus.join(' / ')) + '</div>'
+                                : '';
                             rowsHtml += `<td class="content-cell content-cell-has-reservation" rowspan="${rowspan}"><div class="reservation-cell">
                             <span class="reservation-status">${escapeHtml(status)}</span>
                             <div class="reservation-customer">
@@ -2490,6 +3030,7 @@
                             </div>
                             ${showGuestCount && guestCount ? '<div class="reservation-guest-count">人数：' + escapeHtml(guestCount) + '</div>' : ''}
                             <div class="reservation-menu">${escapeHtml(service)}</div>
+                            ${optionHtml}
                             ${showComment && comments && comments !== 'なし' ? '<div class="reservation-comment">コメント：' + escapeHtml(comments) + '</div>' : ''}
                             ${showNotes && notes && notes !== 'なし' ? '<div class="reservation-notes">施設メモ：' + escapeHtml(notes) + '</div>' : ''}
                         </div></td>`;
@@ -2629,6 +3170,11 @@
                         color: #555;
                         margin-top: 2px;
                     }
+                    .print-option-menus {
+                        font-size: ${fs.menu};
+                        color: #374151;
+                        margin-top: 2px;
+                    }
                     .reservation-menu {
                         font-size: ${fs.menu};
                         margin-bottom: 2px;
@@ -2657,13 +3203,27 @@
                     .print-compact .print-header { margin-bottom: 4px; padding-bottom: 4px; }
                     .print-compact .print-table th,
                     .print-compact .print-table td { padding: 2px 4px; }
-                    .print-compact .print-table tbody tr { height: 18px; max-height: 18px; }
-                    .print-compact .time-cell { height: 18px !important; max-height: 18px !important; }
-                    .print-compact .content-cell { min-height: 18px; }
-                    .print-compact .reservation-cell { padding: 2px 4px 2px 0; padding-right: 40px; min-height: 0; line-height: 1.2; overflow: hidden; }
+                    /* max-height を付けない：rowspan 後続枠まで文字が使えるようにする */
+                    .print-compact .print-table tbody tr { height: 18px; }
+                    .print-compact .time-cell { height: 18px !important; }
+                    .print-compact .content-cell { min-height: 18px; vertical-align: top; }
+                    .print-compact .content-cell.content-cell-has-reservation {
+                        overflow: visible;
+                    }
+                    .print-compact .reservation-cell {
+                        padding: 2px 4px 2px 0;
+                        padding-right: 40px;
+                        min-height: 0;
+                        line-height: 1.2;
+                        overflow: visible;
+                        white-space: normal;
+                        word-break: break-word;
+                        overflow-wrap: anywhere;
+                    }
                     .print-compact .reservation-customer,
                     .print-compact .reservation-customer-kana { margin-bottom: 0; margin-top: 0; line-height: 1.2; }
-                    .print-compact .reservation-menu { margin-bottom: 0; line-height: 1.2; }
+                    .print-compact .reservation-menu,
+                    .print-compact .print-option-menus { margin-bottom: 0; margin-top: 0; line-height: 1.2; white-space: normal; word-break: break-word; }
                     .print-compact .reservation-status { top: 2px; right: 2px; }
                     ` : ''}
                     @media print {
@@ -2694,11 +3254,18 @@
             // 新規受付側が表示されている場合は顧客情報変更チェックを実行
             const newReservationTab = document.getElementById('newReservationTab');
             if (newReservationTab && newReservationTab.classList.contains('active')) {
-                // 顧客情報の変更をチェック
-                checkCustomerInfoChange(function() {
-                    // 変更がない、または確認済みの場合は通常の登録処理を実行
-                    executeReservationSave();
-                });
+                const proceedSave = function() {
+                    checkCustomerInfoChange(function() {
+                        // 変更がない、または確認済みの場合は通常の登録処理を実行
+                        executeReservationSave();
+                    });
+                };
+                // 直接入力時（モック）：既存顧客あり前提で常に確認モーダルを表示
+                if (typeof currentInputMode !== 'undefined' && currentInputMode === 'direct') {
+                    showCustomerInfoConfirmModal(proceedSave);
+                    return;
+                }
+                proceedSave();
                 return;
             }
 
@@ -2720,6 +3287,8 @@
             const startMinute = blockStartMinuteElement.value;
             const endHour = blockEndHourElement.value;
             const endMinute = blockEndMinuteElement.value;
+            const blockMemoElement = document.getElementById('blockMemo');
+            const blockMemo = blockMemoElement ? blockMemoElement.value : '';
 
             // ブロックデータを作成
             const startTime = `${startHour.padStart(2, '0')}:${startMinute.padStart(2, '0')}`;
@@ -2737,12 +3306,17 @@
                 date: blockDate,
                 resource: resourceName, // 押下したセルのリソースに適用
                 startTime: startTime,
-                endTime: endTime
+                endTime: endTime,
+                memo: blockMemo
             };
 
 
             // ブロックデータに追加
             blockedSlots.push(blockData);
+
+            if (blockMemoElement) {
+                blockMemoElement.value = '';
+            }
 
             hideBlockModal();
 
@@ -2750,123 +3324,141 @@
             generateScheduleGrid();
         }
 
-        // ネット受付状態管理
-        let isOnlineReceptionActive = true; // ネット受付の状態（true: 受付中, false: 停止中）
+        // WEB受付状態管理
+        let isOnlineReceptionActive = true; // WEB受付の状態（true: 受付中, false: 停止中）
 
-        // ネット受付の停止/再開を切り替える関数
+        // WEB受付の停止/再開を切り替える関数
         function toggleOnlineReception() {
             if (isOnlineReceptionActive) {
-                // ネット受付停止の確認
-                if (confirm('ネット受付を停止してもよろしいですか？')) {
+                // WEB受付停止の確認
+                if (confirm('WEB受付を停止してもよろしいですか？')) {
                     stopOnlineReception();
                 }
             } else {
-                // ネット受付再開の確認
-                if (confirm('ネット受付を再開してもよろしいですか？')) {
+                // WEB受付再開の確認
+                if (confirm('WEB受付を再開してもよろしいですか？')) {
                     startOnlineReception();
                 }
             }
         }
 
-        // ネット受付を停止する関数
+        // WEB受付を停止する関数
         function stopOnlineReception() {
             isOnlineReceptionActive = false;
             const button = document.querySelector('.btn.warn-btn, .btn.link-btn');
             if (button) {
                 button.className = 'btn ';
-                button.textContent = 'ネット受付再開';
+                button.textContent = 'WEB受付再開';
             }
-            // ここで実際のネット受付停止処理を実行
+            // ここで実際のWEB受付停止処理を実行
         }
 
-        // ネット受付を再開する関数
+        // WEB受付を再開する関数
         function startOnlineReception() {
             isOnlineReceptionActive = true;
             const button = document.querySelector('.btn.warn-btn, .btn.link-btn');
             if (button) {
                 button.className = 'btn warn-btn';
-                button.textContent = 'ネット受付停止';
+                button.textContent = 'WEB受付停止';
             }
-            // ここで実際のネット受付再開処理を実行
+            // ここで実際のWEB受付再開処理を実行
         }
 
         // 受付詳細モーダル機能
         let currentDetailData = null; // 現在表示中の受付データ
 
         function showReservationDetailModal(reservation, dateStr, resource, time) {
-
             // パラメータの検証
-            if (!reservation || !dateStr || !resource || !time) {
+            if (!reservation) {
                 alert('エラー: 受付データが不完全です。');
                 return;
             }
 
-            currentDetailData = {
+            // URLパラメータ経由など、フラットなオブジェクトでも受けられるようにする
+            var data = reservation.reservation ? reservation : {
                 reservation: reservation,
-                dateStr: dateStr,
-                resource: resource,
-                time: time
+                dateStr: dateStr || reservation.appointmentDate || reservation.date || '',
+                resource: resource || reservation.resource || '',
+                time: time || reservation.time || ''
             };
 
-            // 詳細情報を設定
-            document.getElementById('detailDateTime').textContent = `${dateStr} ${time}`;
-            document.getElementById('detailResource').textContent = resourceNames[resource] || `チェア${resource}`;
-            var detailGuestCountRow = document.getElementById('detailGuestCountRow');
-            var detailGuestCountEl = document.getElementById('detailGuestCount');
-            var guestCountText = mockFormatGuestCountDisplay(reservation.guestCount || reservation.totalGuests || reservation.TOTAL_GUESTS);
-            if (detailGuestCountRow && detailGuestCountEl) {
-                if (mockIsGuestCountEnabled()) {
-                    detailGuestCountRow.style.display = '';
-                    detailGuestCountEl.textContent = guestCountText || '-';
-                } else {
-                    detailGuestCountRow.style.display = 'none';
-                    detailGuestCountEl.textContent = '-';
+            if (!data.dateStr || !data.resource || !data.time) {
+                // 日時が結合されている場合（一覧からの遷移など）
+                if (reservation.appointmentDate && !data.dateStr) {
+                    data.dateStr = reservation.appointmentDate;
                 }
             }
-            document.getElementById('detailService').textContent = reservation.service;
-            document.getElementById('detailStatus').textContent = '受付済み';
 
-            // 顧客名（姓・名）を登録／編集モーダルと同様に個別フィールド優先で表示
-            const lastName = reservation.lastName || reservation.customerLastName;
-            const firstName = reservation.firstName || reservation.customerFirstName;
-            if (lastName || firstName) {
-                document.getElementById('detailLastName').textContent = lastName || '-';
-                document.getElementById('detailFirstName').textContent = firstName || '-';
-            } else {
-                // 個別フィールドが無い場合のみ、従来通りまとめている文字列から分割
-                const customerNameParts = (reservation.customer || '').split(/\s+/);
-                const detailLastName = customerNameParts[0] || '-';
-                const detailFirstName = customerNameParts.slice(1).join(' ') || '-';
-                document.getElementById('detailLastName').textContent = detailLastName;
-                document.getElementById('detailFirstName').textContent = detailFirstName;
+            currentDetailData = data;
+
+            var r = data.reservation || {};
+            var id = r.id || r.reservationId || r.RESERVATION_ID || reservation.id || '112';
+            var dateDisp = formatDateSlash(data.dateStr || '2025/09/18');
+            var timeDisp = data.time || '15:30';
+            var resourceDisp = data.resource || r.resource || 'チェアA';
+            if (resourceDisp && resourceDisp.indexOf('チェア') !== 0 && /^[A-E]$/.test(resourceDisp)) {
+                resourceDisp = 'チェア' + resourceDisp;
             }
 
-            // 顧客名【カナ】（姓・名）も個別フィールド優先で表示
-            const lastNameKana = reservation.lastNameKana || reservation.customerLastNameKana;
-            const firstNameKana = reservation.firstNameKana || reservation.customerFirstNameKana;
-            if (lastNameKana || firstNameKana) {
-                document.getElementById('detailLastNameKana').textContent = lastNameKana || '-';
-                document.getElementById('detailFirstNameKana').textContent = firstNameKana || '-';
+            var modal = document.getElementById('reservationDetailModal');
+            if (!modal) return;
+
+            var title = modal.querySelector('.modal-title');
+            if (title) title.textContent = '📝 受付・予約詳細（ID：' + id + '）';
+
+            var setText = function (id, value) {
+                var el = document.getElementById(id);
+                if (el) el.textContent = (value == null || value === '') ? '　' : String(value);
+            };
+
+            setText('detailDateTime', dateDisp + ' ' + timeDisp);
+            setText('detailGuestCount', r.guestCount != null ? r.guestCount : (reservation.guestCount || '2'));
+            setText('detailLastName', r.lastName || (r.customer ? String(r.customer).split(/\s+/)[0] : '') || reservation.customerName || 'テスト');
+            setText('detailFirstName', r.firstName || (r.customer ? String(r.customer).split(/\s+/).slice(1).join(' ') : '') || '花子');
+            setText('detailLastNameKana', r.lastNameKana || (r.customerKana ? String(r.customerKana).split(/\s+/)[0] : '') || 'テスト');
+            setText('detailFirstNameKana', r.firstNameKana || (r.customerKana ? String(r.customerKana).split(/\s+/).slice(1).join(' ') : '') || 'ハナコ');
+            setText('detailPhone', r.phone || r.phoneNumber || '09012345678');
+            setText('detailEmail', r.email || 'xxxxx@xxxx.xxxx');
+            setText('detailService', r.service || r.menu || reservation.menu || 'カット');
+            var opts = r.optionMenus;
+            setText('detailOptionMenus', (opts && opts.length) ? opts.join('、') : 'なし');
+            var totalPrice = r.totalPrice != null ? Number(r.totalPrice).toLocaleString('ja-JP') + '円' : '4,000円';
+            var totalDur = '';
+            if (typeof getReservationSpanMinutes === 'function' && r.service) {
+                totalDur = getReservationSpanMinutes(r) + '分';
+            } else if (r.service && /\((\d+)\s*分/.test(r.service)) {
+                totalDur = RegExp.$1 + '分';
             } else {
-                const customerKanaParts = (reservation.customerKana || '').split(/\s+/);
-                const detailLastNameKana = customerKanaParts[0] || '-';
-                const detailFirstNameKana = customerKanaParts.slice(1).join(' ') || '-';
-                document.getElementById('detailLastNameKana').textContent = detailLastNameKana;
-                document.getElementById('detailFirstNameKana').textContent = detailFirstNameKana;
+                totalDur = '30分';
+            }
+            setText('detailTotalInfo', totalPrice + ' / ' + totalDur);
+            setText('detailStaff', r.staff || '指定なし');
+            setText('detailFacility', resourceDisp);
+            setText('detailNotes', r.notes || '　');
+            setText('detailComments', r.comments || '　');
+
+            var statusEl = document.getElementById('detailStatus');
+            if (statusEl) {
+                var sid = String(id);
+                statusEl.textContent = (sid === '1' || sid === '5' || sid === '6') ? '受付待ち' : '受付済み';
             }
 
-            document.getElementById('detailPhone').textContent = reservation.phone || '未設定';
-            document.getElementById('detailEmail').textContent = reservation.email || '未設定';
-            document.getElementById('detailComments').textContent = reservation.comments || '　';
-            document.getElementById('detailNotes').textContent = reservation.notes || '　';
-
-            // モーダルを表示
-            document.getElementById('reservationDetailModal').style.display = 'flex';
+            hideEditModal();
+            modal.style.display = 'flex';
+            if (typeof mockSyncGuestCountFieldVisibility === 'function') {
+                mockSyncGuestCountFieldVisibility();
+            }
         }
 
         function hideReservationDetailModal() {
             document.getElementById('reservationDetailModal').style.display = 'none';
             // currentDetailDataは編集モーダルが閉じられるまで保持する
+        }
+
+        function completeReceptionFromDetail() {
+            alert('受付完了しました（モック）');
+            hideReservationDetailModal();
+            if (typeof generateScheduleGrid === 'function') generateScheduleGrid();
         }
 
         // キャンセル理由入力モーダルを表示
@@ -2910,19 +3502,11 @@
         let currentEditData = null; // 現在編集中の受付データ
 
         function showEditModal(reservation, dateStr, resource, time) {
-
-            const overlay = document.getElementById('popupOverlay');
-            const modal = document.getElementById('editModal');
-
-
-            if (!overlay || !modal) {
+            if (!reservation) {
+                alert('エラー: 受付データが不完全です。');
                 return;
             }
 
-            // モーダルを表示
-            modal.style.display = 'flex';
-
-            // 現在編集中のデータを保存
             currentEditData = {
                 reservation: reservation,
                 dateStr: dateStr,
@@ -2930,103 +3514,72 @@
                 time: time
             };
 
-            // フォームにデータを設定（顧客名は姓・名それぞれに反映）
-            const lastNameField = document.getElementById('editLastNameEdit') || document.getElementById('editLastName');
-            const firstNameField = document.getElementById('editFirstNameEdit') || document.getElementById('editFirstName');
-            const lastNameKanaField = document.getElementById('editLastNameKanaEdit') || document.getElementById('editLastNameKana');
-            const firstNameKanaField = document.getElementById('editFirstNameKanaEdit') || document.getElementById('editFirstNameKana');
+            var modal = document.getElementById('editModal');
+            if (!modal) return;
 
-            // 姓名（通常）
-            let lastName = reservation.lastName || reservation.customerLastName || '';
-            let firstName = reservation.firstName || reservation.customerFirstName || '';
-            if (!lastName && !firstName && reservation.customer) {
-                const nameParts = reservation.customer.split(/\s+/);
-                lastName = nameParts[0] || '';
-                firstName = nameParts.slice(1).join(' ') || '';
-            }
-            if (lastNameField)  lastNameField.value  = lastName;
-            if (firstNameField) firstNameField.value = firstName;
-
-            // 姓名【カナ】
-            let lastNameKana = reservation.lastNameKana || reservation.customerLastNameKana || '';
-            let firstNameKana = reservation.firstNameKana || reservation.customerFirstNameKana || '';
-            if (!lastNameKana && !firstNameKana && reservation.customerKana) {
-                const kanaParts = reservation.customerKana.split(/\s+/);
-                lastNameKana = kanaParts[0] || '';
-                firstNameKana = kanaParts.slice(1).join(' ') || '';
-            }
-            if (lastNameKanaField)  lastNameKanaField.value  = lastNameKana;
-            if (firstNameKanaField) firstNameKanaField.value = firstNameKana;
-
-            // 連絡先・メニューなど
-            const phoneFieldBase = document.getElementById('editPhoneNumber');
-            const emailFieldBase = document.getElementById('editEmail');
-            const menuField = document.getElementById('editMenu');
-            const resourceField = document.getElementById('editResource');
-            const facilityMemoField = document.getElementById('facilityMemo');
-
-            if (phoneFieldBase)     phoneFieldBase.value = reservation.phone || '';
-            if (emailFieldBase)     emailFieldBase.value = reservation.email || '';
-            var editGuestCountInput = document.getElementById('editGuestCount');
-            if (editGuestCountInput) {
-                mockSetGuestCountInput(editGuestCountInput, reservation.guestCount || reservation.totalGuests || reservation.TOTAL_GUESTS || '');
-            }
-            mockSyncGuestCountFieldVisibility();
-            if (menuField)          menuField.value = reservation.service || '';
-            if (resourceField)      resourceField.value = resource || '';
-            if (facilityMemoField)  facilityMemoField.value = reservation.facilityMemo || '';
-
-            // コメントを設定（表示のみ）
-            const editCommentField = document.getElementById('editComment');
-            if (editCommentField) {
-                editCommentField.value = reservation.comments || '　';
-                editCommentField.setAttribute('readonly', 'readonly');
-                editCommentField.setAttribute('disabled', 'disabled');
-                editCommentField.readOnly = true;
-                editCommentField.disabled = true;
-            }
-
-            // 初期状態：顧客情報は入力可能
-            const phoneField = document.getElementById('editPhoneNumber');
-            const emailField = document.getElementById('editEmail');
-            const directInputBtnEdit = document.getElementById('directInputBtnEdit');
-
-            if (lastNameField)      lastNameField.disabled = false;
-            if (firstNameField)     firstNameField.disabled = false;
-            if (lastNameKanaField)  lastNameKanaField.disabled = false;
-            if (firstNameKanaField) firstNameKanaField.disabled = false;
-            if (phoneField) phoneField.disabled = false;
-            if (emailField) emailField.disabled = false;
-            if (directInputBtnEdit) directInputBtnEdit.style.display = 'none';
-
-            // 日時を設定
-            const [year, month, day] = dateStr.split('-');
-            const [hours, minutes] = time.split(':');
-            // YYYY/MM/DD形式にフォーマット（月と日を2桁に）
-            const formattedMonth = month.padStart(2, '0');
-            const formattedDay = day.padStart(2, '0');
-            document.getElementById('reservationDate').value = `${year}/${formattedMonth}/${formattedDay}`;
-
-            // 時間を設定
-            const startHourSelect = document.getElementById('startHour');
-            const startMinuteSelect = document.getElementById('startMinute');
-            if (startHourSelect) {
-                startHourSelect.value = hours || '15';
-            }
-            if (startMinuteSelect) {
-                startMinuteSelect.value = minutes || '00';
-            }
-
-            // コメント欄を確実に変更不可にする（モーダル表示後にも設定）
-            setTimeout(() => {
-                const editCommentField = document.getElementById('editComment');
-                if (editCommentField) {
-                    editCommentField.setAttribute('readonly', 'readonly');
-                    editCommentField.setAttribute('disabled', 'disabled');
-                    editCommentField.readOnly = true;
-                    editCommentField.disabled = true;
+            var id = reservation.id || reservation.reservationId || reservation.RESERVATION_ID || '112';
+            var title = modal.querySelector('.modal-title span:last-child') || modal.querySelector('.modal-title');
+            if (title) {
+                if (title.tagName === 'SPAN') {
+                    title.textContent = '受付・予約編集（ID：' + id + '）';
+                } else {
+                    title.innerHTML = '<span class="modal-title-icon" aria-hidden="true">✏️</span><span>受付・予約編集（ID：' + id + '）</span>';
                 }
-            }, 0);
+            }
+
+            var dateSlash = formatDateSlash(dateStr);
+            var dateInput = modal.querySelector('#reservationDate');
+            if (dateInput && dateSlash) dateInput.value = dateSlash;
+
+            if (time) {
+                var tm = String(time).split(':');
+                var startHour = modal.querySelector('#startHour');
+                var startMinute = modal.querySelector('#startMinute');
+                if (tm[0] && startHour) startHour.value = tm[0];
+                if (tm[1] && startMinute) startMinute.value = tm[1];
+            }
+
+            var lastName = reservation.lastName || (reservation.customer ? String(reservation.customer).split(/\s+/)[0] : '') || 'テスト';
+            var firstName = reservation.firstName || (reservation.customer ? String(reservation.customer).split(/\s+/).slice(1).join(' ') : '') || '花子';
+            var lastNameKana = reservation.lastNameKana || (reservation.customerKana ? String(reservation.customerKana).split(/\s+/)[0] : '') || 'テスト';
+            var firstNameKana = reservation.firstNameKana || (reservation.customerKana ? String(reservation.customerKana).split(/\s+/).slice(1).join(' ') : '') || 'ハナコ';
+
+            var setVal = function (sel, value) {
+                var el = modal.querySelector(sel);
+                if (el) el.value = value == null ? '' : String(value);
+            };
+            setVal('#editLastNameEdit', lastName);
+            setVal('#editFirstNameEdit', firstName);
+            setVal('#editLastNameKanaEdit', lastNameKana);
+            setVal('#editFirstNameKanaEdit', firstNameKana);
+            setVal('#editPhoneNumber', reservation.phone || reservation.phoneNumber || '09012345678');
+            setVal('#editEmail', reservation.email || 'xxxxx@xxxx.xxxx');
+            setVal('#editGuestCount', reservation.guestCount != null ? reservation.guestCount : '2');
+            setVal('#editComment', reservation.comments || '-');
+            setVal('#facilityMemo', reservation.notes || '');
+
+            var menuSel = modal.querySelector('#editMenu');
+            if (menuSel && reservation.service) {
+                var matched = false;
+                for (var i = 0; i < menuSel.options.length; i++) {
+                    if (reservation.service.indexOf(menuSel.options[i].value) !== -1 && menuSel.options[i].value) {
+                        menuSel.selectedIndex = i;
+                        matched = true;
+                        break;
+                    }
+                }
+                if (!matched) menuSel.value = 'カット';
+                if (typeof onReservationMenuChange === 'function') onReservationMenuChange('edit');
+            }
+
+            setSelectValue(modal.querySelector('#editResource'), resource);
+            setSelectValue(modal.querySelector('#editStaff'), reservation.staff || '');
+
+            hideReservationDetailModal();
+            modal.style.display = 'flex';
+            if (typeof mockSyncGuestCountFieldVisibility === 'function') {
+                mockSyncGuestCountFieldVisibility();
+            }
         }
 
         function hideEditModal() {
@@ -3045,24 +3598,38 @@
         }
 
         function saveEdit() {
-            if (!currentEditData) return;
+            if (!currentEditData) {
+                // データがなくても閉じる（モック）
+                hideEditModal();
+                if (typeof generateScheduleGrid === 'function') generateScheduleGrid();
+                return;
+            }
 
-            var editGuestCountEl = document.getElementById('editGuestCount');
+            var modal = document.getElementById('editModal');
+            var editGuestCountEl = modal ? modal.querySelector('#editGuestCount') : document.getElementById('editGuestCount');
+            var lastNameEl = modal ? modal.querySelector('#editLastNameEdit') : null;
+            var firstNameEl = modal ? modal.querySelector('#editFirstNameEdit') : null;
+            var phoneEl = modal ? modal.querySelector('#editPhoneNumber') : document.getElementById('editPhoneNumber');
+            var emailEl = modal ? modal.querySelector('#editEmail') : document.getElementById('editEmail');
+            var menuEl = modal ? modal.querySelector('#editMenu') : document.getElementById('editMenu');
+            var resourceEl = modal ? modal.querySelector('#editResource') : document.getElementById('editResource');
+            var commentEl = modal ? modal.querySelector('#editComment') : document.getElementById('editComment');
+            var notesEl = modal ? modal.querySelector('#facilityMemo') : document.getElementById('facilityMemo');
+
             const reservation = {
-                customer: document.getElementById('editCustomerName').value,
-                customerKana: document.getElementById('editCustomerNameKana').value,
-                phone: document.getElementById('editPhoneNumber').value,
-                email: document.getElementById('editEmail').value,
-                guestCount: (mockIsGuestCountEnabled() && editGuestCountEl) ? editGuestCountEl.value : '',
-                service: document.getElementById('editMenu').value,
-                resource: document.getElementById('editResource').value,
-                comments: document.getElementById('comment').value,
-                notes: document.getElementById('facilityMemo').value
+                customer: ((lastNameEl && lastNameEl.value) || '') + ' ' + ((firstNameEl && firstNameEl.value) || ''),
+                phone: phoneEl ? phoneEl.value : '',
+                email: emailEl ? emailEl.value : '',
+                guestCount: (typeof mockIsGuestCountEnabled === 'function' && mockIsGuestCountEnabled() && editGuestCountEl) ? editGuestCountEl.value : '',
+                service: menuEl ? menuEl.value : '',
+                resource: resourceEl ? resourceEl.value : '',
+                comments: commentEl ? commentEl.value : '',
+                notes: notesEl ? notesEl.value : ''
             };
 
-
-            // ここで実際の保存処理を行う
-            // 例: APIに送信、ローカルストレージに保存など
+            // モック：保存処理
+            void reservation;
+            alert('更新しました（モック）');
             hideEditModal();
             generateScheduleGrid(); // グリッドを再描画
         }
@@ -3071,6 +3638,59 @@
         // URLパラメータをチェックして受付詳細を表示
         function checkUrlParameters() {
             const urlParams = new URLSearchParams(window.location.search);
+
+            if (urlParams.has('selectId')) {
+                var selectId = urlParams.get('selectId');
+                window.history.replaceState({}, document.title, window.location.pathname);
+                // 一覧の「選択」相当：対象日へ移動して枠を強調
+                setTimeout(function () {
+                    showReservationDetail(selectId);
+                }, 80);
+                return;
+            }
+
+            var openMode = urlParams.get('open');
+            if (openMode === 'detail' || openMode === 'edit' || openMode === 'new' || openMode === 'block') {
+                var openId = urlParams.get('id') || '112';
+                var openDate = urlParams.get('date') || formatDate(currentDate);
+                var openTime = urlParams.get('time') || '15:30';
+                var openResource = urlParams.get('resource') || 'A';
+                window.history.replaceState({}, document.title, window.location.pathname);
+
+                setTimeout(function () {
+                    if (openMode === 'new') {
+                        openReservationRegisterModal({ date: openDate, time: openTime, resource: openResource });
+                        return;
+                    }
+                    if (openMode === 'block') {
+                        openReservationRegisterModal({ date: openDate, time: openTime, resource: openResource, tab: 'block' });
+                        return;
+                    }
+                    var mockReservation = {
+                        reservationId: openId,
+                        customer: 'テスト 花子',
+                        customerKana: 'テスト ハナコ',
+                        lastName: 'テスト',
+                        firstName: '花子',
+                        lastNameKana: 'テスト',
+                        firstNameKana: 'ハナコ',
+                        phone: '09012345678',
+                        email: 'xxxxx@xxxx.xxxx',
+                        service: 'カット(30分 / 4,000円)',
+                        optionMenus: [],
+                        totalPrice: 4000,
+                        guestCount: 2,
+                        notes: '',
+                        comments: ''
+                    };
+                    if (openMode === 'detail') {
+                        showReservationDetailModal(mockReservation, openDate, openResource, openTime);
+                    } else {
+                        showEditModal(mockReservation, openDate, openResource, openTime);
+                    }
+                }, 80);
+                return;
+            }
 
             if (urlParams.has('appointmentDate')) {
                 const appointmentDate = urlParams.get('appointmentDate');
@@ -3095,8 +3715,9 @@
                     customerNameKana: customerNameKana,
                     resource: resource,
                     menu: menu,
-                    registrationDate: registrationDate
-                });
+                    registrationDate: registrationDate,
+                    time: '10:00'
+                }, appointmentDate, resource || 'A', '10:00');
 
                 // URLパラメータをクリア
                 window.history.replaceState({}, document.title, window.location.pathname);
@@ -3104,7 +3725,7 @@
         }
 
 
-        // 詳細モーダルから編集モーダルを開く
+        // 詳細モーダルから編集画面へ遷移
         function editReservationFromDetail() {
 
             if (!currentDetailData) {
@@ -3118,16 +3739,12 @@
                 return;
             }
 
-            // 編集モーダルを開く（currentDetailDataを使用してから）
             showEditModal(
                 currentDetailData.reservation,
                 currentDetailData.dateStr,
                 currentDetailData.resource,
                 currentDetailData.time
             );
-
-            // 詳細モーダルを閉じる（編集モーダルを開いた後）
-            hideReservationDetailModal();
         }
 
 
@@ -3150,6 +3767,10 @@
 
         // キャンセル理由ポップアップ機能
         function showCancelReasonPopup(event, cancelReason) {
+            if (window.matchMedia('(max-width: 768px)').matches ||
+                (typeof window.tryServIsSpContent === 'function' && window.tryServIsSpContent())) {
+                return;
+            }
             const popup = document.getElementById('cancelReasonPopup');
             const cancelReasonText = document.getElementById('cancelReasonText');
 
@@ -3216,7 +3837,6 @@
 
             // カレンダーポップアップ
             document.getElementById('closePopup').addEventListener('click', hideCalendarPopup);
-            document.getElementById('popupOverlay').addEventListener('click', hideCalendarPopup);
 
             // カレンダーポップアップの月移動ボタン
             document.getElementById('prevMonthBtn').addEventListener('click', () => changeCalendarPopupMonth(-1));
@@ -3237,8 +3857,9 @@
                 generateScheduleGrid();
             });
 
-            // 新規受付ボタン
+            // 新規受付モーダル
             document.getElementById('closeReservationModal').addEventListener('click', hideReservationModal);
+            document.getElementById('cancelReservation').addEventListener('click', hideReservationModal);
 
             // 編集モーダル
             document.getElementById('closeEditModal').addEventListener('click', hideEditModal);
@@ -3248,6 +3869,14 @@
             // 初期化
             updateDateInput();
             generateScheduleGrid();
+
+            // 端末エミュ／画面遷移直後はレイアウト確定が遅れることがあるため再描画
+            window.addEventListener('load', function () {
+                generateScheduleGrid();
+            });
+            window.addEventListener('pageshow', function (e) {
+                if (e.persisted) generateScheduleGrid();
+            });
 
             // URLパラメータをチェックして受付詳細を表示（少し遅延させて実行）
             setTimeout(() => {
@@ -3344,23 +3973,40 @@
 
         // 受付詳細ポップアップ表示
         function showReservationPopup(event, popup) {
+            // SP幅ではホバーポップアップを出さない（タップ→詳細モーダルは維持）
+            if (window.matchMedia('(max-width: 768px)').matches ||
+                (typeof window.tryServIsSpContent === 'function' && window.tryServIsSpContent())) {
+                return;
+            }
             const rect = event.target.getBoundingClientRect();
 
             // ポップアップを表示
             popup.classList.add('show');
 
+            // 実寸を取得（固定値だと内容が少ないポップアップが離れて表示されるため）
+            const popupRect = popup.getBoundingClientRect();
+            const popupWidth = popupRect.width || 320;
+            const popupHeight = popupRect.height || 200;
+            const gap = 5;
+
             // ポップアップの位置を計算
-            let top = rect.bottom + 5;
+            let top = rect.bottom + gap;
             let left = rect.left;
 
             // 画面右端からはみ出る場合は左に調整
-            if (left + 320 > window.innerWidth) {
-                left = window.innerWidth - 320 - 10;
+            if (left + popupWidth > window.innerWidth) {
+                left = window.innerWidth - popupWidth - 10;
+            }
+            if (left < 10) {
+                left = 10;
             }
 
             // 画面下端からはみ出る場合は上に表示
-            if (top + 200 > window.innerHeight) {
-                top = rect.top - 200 - 5;
+            if (top + popupHeight > window.innerHeight) {
+                top = rect.top - popupHeight - gap;
+            }
+            if (top < 10) {
+                top = 10;
             }
 
             popup.style.top = top + 'px';
@@ -3782,21 +4428,18 @@
 
         // ====== 受付・予約一覧ポップアップ ======
         function showReservationListPopup(searchValue) {
-            if (searchValue && searchValue.trim() !== '') {
-                // 検索値をポップアップの検索フィールドに設定
-                const wordElement = document.getElementById('searchWord');
-                if (wordElement) wordElement.value = searchValue;
-
-                // ポップアップを表示
-                document.getElementById('reservationListPopupOverlay').style.display = 'flex';
-
-                // 検索を実行
-                searchReservations();
+            // モーダルから画面遷移へ（PC/SP共通）
+            var q = (searchValue || '').trim();
+            var url = './admin_reservation_list.html';
+            if (q) {
+                url += '?q=' + encodeURIComponent(q);
             }
+            location.href = url;
         }
 
         function closeReservationListPopup() {
-            document.getElementById('reservationListPopupOverlay').style.display = 'none';
+            var overlay = document.getElementById('reservationListPopupOverlay');
+            if (overlay) overlay.style.display = 'none';
             // 検索フォームをクリア
             clearSearchForm();
         }
@@ -3824,65 +4467,104 @@
             // ここで検索結果に基づいてテーブルを更新
         }
 
-        function showReservationDetail(reservationId) {
-
-            // 検索モーダルを閉じる
-            closeReservationListPopup();
-
-            // テスト花子の予約枠を強調表示（10月12日 10:00～10:45 チェアB）
-            const tomorrow = new Date(today);
-            tomorrow.setDate(today.getDate() + 1);
-            const targetDate = formatDate(tomorrow);
-            const targetResource = 'B';
-            const targetStartTime = '10:00';
-            const targetEndTime = '10:45';
-            const targetCustomer = 'テスト花子';
-
-            // 10月12日に日付を変更
-            changeScheduleDate(targetDate);
-
-            // スケジュールグリッドが生成された後に枠線を赤にする
-            setTimeout(() => {
-                highlightReservationCells(targetDate, targetResource, targetStartTime, targetEndTime);
-            }, 100);
-
-            // 選択された受付の日付を取得（テーブルから）
-            const selectedRow = event.target.closest('tr');
-            if (selectedRow) {
-                //const dateCell = selectedRow.cells[3]; // 受付日時の列
-                //const dateText = dateCell.textContent.trim();
-
-                // 日付を抽出（例: "2025-10-08 10:00" から "2025-10-08" を抽出）
-                //const dateMatch = dateText.match(/(\d{4}-\d{2}-\d{2})/);
-                ////if (dateMatch) {
-                //const selectedDate = dateMatch[1];
-
-                // スケジュールの開始日を変更
-                changeScheduleDate(targetDate);
-                //}
+        function findReservationLocationById(reservationId) {
+            var targetId = String(reservationId == null ? '' : reservationId);
+            if (!targetId) return null;
+            var dates = Object.keys(scheduleData || {});
+            for (var d = 0; d < dates.length; d++) {
+                var dateStr = dates[d];
+                var dayData = scheduleData[dateStr] || {};
+                var resources = Object.keys(dayData);
+                for (var r = 0; r < resources.length; r++) {
+                    var resource = resources[r];
+                    var slots = dayData[resource] || {};
+                    var times = Object.keys(slots);
+                    for (var t = 0; t < times.length; t++) {
+                        var time = times[t];
+                        var entry = slots[time];
+                        if (entry && String(entry.reservationId) === targetId) {
+                            return {
+                                dateStr: dateStr,
+                                resource: resource,
+                                startTime: time,
+                                entry: entry
+                            };
+                        }
+                    }
+                }
             }
+            return null;
         }
 
-        // 指定された予約枠の枠線を赤にする関数
-        function highlightReservationCells(targetDate, targetResource, startTime, endTime) {
+        function showReservationDetail(reservationId) {
+            // 検索モーダル／一覧から戻ってきたときは詳細モーダルは開かず、
+            // スケジュール上の該当日へ移動して枠を強調する
+            if (typeof closeReservationListPopup === 'function') {
+                closeReservationListPopup();
+            }
 
-            // スケジュールグリッド内のすべてのセルを取得
-            const allCells = document.querySelectorAll('.schedule-cell');
+            var isSp = window.innerWidth <= 1024;
+            var tomorrowDate = new Date();
+            tomorrowDate.setHours(0, 0, 0, 0);
+            tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+            var tomorrowStr = formatDate(tomorrowDate);
+            var targetDate;
 
-            allCells.forEach(cell => {
-                // data-reservation-id属性をチェック
-                const reservationId = cell.getAttribute('data-reservation-id');
+            if (isSp) {
+                // SP：開始日を翌日にし、ID:3 を選択済み表示
+                targetDate = tomorrowStr;
+                reservationId = '3';
+                viewMode = '1day';
+                var dayBtn = document.getElementById('view1Day');
+                var weekBtn = document.getElementById('view1Week');
+                if (dayBtn) dayBtn.classList.add('active');
+                if (weekBtn) weekBtn.classList.remove('active');
+            } else {
+                var found = findReservationLocationById(reservationId);
+                targetDate = found ? found.dateStr : tomorrowStr;
+            }
 
-                if (reservationId) {
-                    console.log('セルのreservationId:', reservationId);
+            window.pendingListHighlightId = String(reservationId || '3');
+            changeScheduleDate(targetDate);
+
+            var applyHighlight = function () {
+                if (window.pendingListHighlightId) {
+                    highlightReservationCells(String(window.pendingListHighlightId));
                 }
-                // data-reservation-id="4"のセルかチェック
-                if (reservationId == '1') {
-                    console.log('reservationId="1"のセルを発見');
-                    // セルの枠線を赤にする
-                    cell.style.background = '#f44336';
-                    cell.style.border = '1px solid #f44336';
-                    cell.style.color = '#FFFFFF';
+            };
+            setTimeout(applyHighlight, 50);
+            setTimeout(applyHighlight, 200);
+            setTimeout(applyHighlight, 500);
+        }
+
+        // 指定された予約枠を強調（背景 #F44336）
+        function highlightReservationCells(reservationId) {
+            var targetId = String(reservationId == null ? '' : reservationId);
+            if (!targetId) return;
+
+            var allCells = document.querySelectorAll('.schedule-cell');
+            allCells.forEach(function (cell) {
+                if (cell.getAttribute('data-list-highlight') === '1') {
+                    cell.style.removeProperty('background');
+                    cell.style.removeProperty('background-color');
+                    cell.style.removeProperty('border');
+                    cell.style.removeProperty('border-color');
+                    cell.style.removeProperty('padding');
+                    cell.style.removeProperty('color');
+                    cell.removeAttribute('data-list-highlight');
+                }
+
+                var cellReservationId = cell.getAttribute('data-reservation-id');
+                if (cellReservationId && String(cellReservationId) === targetId) {
+                    cell.style.setProperty('background', '#F44336', 'important');
+                    cell.style.setProperty('background-color', '#F44336', 'important');
+                    cell.style.setProperty('padding', '0', 'important');
+                    cell.style.setProperty('color', '#FFFFFF', 'important');
+                    // 日付境界の緑線を切らないよう左枠は触らない
+                    if (!cell.classList.contains('schedule-cell--day-boundary')) {
+                        cell.style.setProperty('border-color', '#F44336', 'important');
+                    }
+                    cell.setAttribute('data-list-highlight', '1');
                 }
             });
         }
@@ -3903,13 +4585,6 @@
             generateScheduleGrid();
 
         }
-
-        // ポップアップ外クリックで閉じる
-        document.getElementById('reservationListPopupOverlay').addEventListener('click', function (e) {
-            if (e.target === this) {
-                closeReservationListPopup();
-            }
-        });
 
         window.addEventListener('load', () => {
             drawBar('chart1', [22, 18, 25, 30, 28, 35, 42, 44, 38, 27, 24, 35]);
@@ -3940,6 +4615,10 @@
             cancelRows.forEach(row => {
                 // マウスオーバー時
                 row.addEventListener('mouseenter', function(event) {
+                    if (window.matchMedia('(max-width: 768px)').matches ||
+                        (typeof window.tryServIsSpContent === 'function' && window.tryServIsSpContent())) {
+                        return;
+                    }
                     // サンプルのキャンセル理由（実際にはデータから取得）
                     const cancelReason = '顧客都合により予約をキャンセルしました。';
                     showCancelReasonPopup(event, cancelReason);
@@ -3952,6 +4631,10 @@
 
                 // マウス移動時（ポップアップの位置を更新）
                 row.addEventListener('mousemove', function(event) {
+                    if (window.matchMedia('(max-width: 768px)').matches ||
+                        (typeof window.tryServIsSpContent === 'function' && window.tryServIsSpContent())) {
+                        return;
+                    }
                     const popup = document.getElementById('cancelReasonPopup');
                     if (popup.classList.contains('show')) {
                         const mouseX = event.clientX;
@@ -4732,6 +5415,51 @@
         }
 
         /**
+         * 顧客情報確認モーダルを表示（直接入力・既存顧客一致時／モックは常に表示）
+         */
+        function showCustomerInfoConfirmModal(callback) {
+            const modal = document.getElementById('customerInfoConfirmModal');
+            if (!modal) {
+                if (callback) callback();
+                return;
+            }
+            pendingSaveCallback = callback;
+            // デフォルトは「入力した顧客情報」
+            const defaultChoice = modal.querySelector('input[name="customerInfoChoice"][value="input"]');
+            if (defaultChoice) {
+                defaultChoice.checked = true;
+            }
+            modal.style.display = 'flex';
+            modal.style.setProperty('z-index', '10003', 'important');
+            const modalContent = modal.querySelector('.normal-modal');
+            if (modalContent) {
+                modalContent.style.setProperty('z-index', '10003', 'important');
+            }
+        }
+
+        /**
+         * 顧客情報確認モーダルを非表示
+         */
+        function hideCustomerInfoConfirmModal() {
+            const modal = document.getElementById('customerInfoConfirmModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            pendingSaveCallback = null;
+        }
+
+        /**
+         * 顧客情報確認後に登録を実行
+         */
+        function confirmCustomerInfo() {
+            const callback = pendingSaveCallback;
+            hideCustomerInfoConfirmModal();
+            if (callback) {
+                callback();
+            }
+        }
+
+        /**
          * 受付登録を実行
          */
         function executeReservationSave() {
@@ -4752,11 +5480,18 @@
                 // 新規受付側が表示されている場合は顧客情報変更チェックを実行
                 const newReservationTab = document.getElementById('newReservationTab');
                 if (newReservationTab && newReservationTab.classList.contains('active')) {
-                    // 顧客情報の変更をチェック
-                    checkCustomerInfoChange(function() {
-                        // 変更がない、または確認済みの場合は通常の登録処理を実行
-                        executeReservationSave();
-                    });
+                    const proceedSave = function() {
+                        checkCustomerInfoChange(function() {
+                            // 変更がない、または確認済みの場合は通常の登録処理を実行
+                            executeReservationSave();
+                        });
+                    };
+                    // 直接入力時（モック）：既存顧客あり前提で常に確認モーダルを表示
+                    if (typeof currentInputMode !== 'undefined' && currentInputMode === 'direct') {
+                        showCustomerInfoConfirmModal(proceedSave);
+                        return;
+                    }
+                    proceedSave();
                     return;
                 }
                 // ブロック登録の場合は元の処理を実行

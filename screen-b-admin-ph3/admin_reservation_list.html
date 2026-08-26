@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>受付・予約一覧｜管理画面モック</title>
+    <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
+    <link href="./style.css" rel="stylesheet">
+    <link href="./sp.css" rel="stylesheet">
+    <script src="./sp.js" defer></script>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="logo">
+                <img src="./logo.png" alt="TryServ" style="width: 150px; height: auto;">
+                <div>
+                    <span style="font-size:12px;color:#9fb6ff">受付・予約管理システム</span><br />
+                    <strong>管理者太郎</strong>
+                </div>
+            </div>
+            <nav class="nav" id="nav">
+                <a href="./admin_index.html" data-target="dashboard">📊 ダッシュボード</a>
+                <a href="./admin_reservations.html" data-target="reservations" class="active">📅 受付・予約管理</a>
+                <a href="./admin_customers.html" data-target="customers">👥 顧客管理</a>
+                <a href="./admin_menus.html" data-target="menus">🛠 メニュー管理</a>
+                <a href="./admin_resources.html" data-target="resources">💺 リソース管理</a>
+                <a href="./admin_users.html" data-target="users">👫 スタッフ管理</a>
+                <a href="./admin_setting.html" data-target="settings">⚙ 基本設定</a>
+                <a href="./admin_usage.html" data-target="usage">💰 利用料金の情報</a>
+                <a href="./admin_operation_log.html">📜 操作履歴</a>
+                <a href="./admin_multilang_manage.html" data-target="multilang">🌐 多言語管理</a>
+                <a href="./admin_google_feed.html" data-target="google-feed">🔗 Googleで予約<span class="nav-indicator-dot">⚠️</span></a>
+            </nav>
+            <div class="foot">© 2025 IFLAG Co, Ltd.</div>
+        </aside>
+        <main class="main">
+            <div class="main-section">
+                <div class="main-header">
+                    <h3 class="main-title">🔍 受付・予約一覧</h3>
+                    <button type="button" class="modal-close" onclick="location.href='./admin_reservations.html'" aria-label="閉じる">×</button>
+                </div>
+
+                <div class="setting-form-section">
+                    <div class="search-form-content">
+                        <h3 class="search-form-title">検索条件</h3>
+                        <div class="search-form-grid-setting">
+                            <div class="search-form-row">
+                                <div class="search-form-label">ID/顧客名/電話番号</div>
+                                <div class="search-form-input">
+                                    <input type="text" class="form-input" id="searchWord" placeholder="ID/顧客名/電話番号を入力">
+                                </div>
+                            </div>
+                            <div class="search-form-row">
+                                <div class="search-form-label">メニュー</div>
+                                <div class="search-form-input">
+                                    <select class="form-input" id="searchMenu">
+                                        <option value="">選択してください</option>
+                                        <option value="menuA" selected>カット</option>
+                                        <option value="menuB">シャンプー</option>
+                                        <option value="menuC">パーマ</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="search-form-row">
+                                <div class="search-form-label">ステータス</div>
+                                <div class="search-form-input">
+                                    <select class="form-input" id="searchStatus">
+                                        <option value="">選択してください</option>
+                                        <option value="statusA">受付待ち</option>
+                                        <option value="statusB">受付完了</option>
+                                        <option value="statusC">キャンセル</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="search-form-actions">
+                            <button type="button" class="link-btn" onclick="searchReservations()">検索</button>
+                            <button type="button" class="clear-btn" onclick="clearSearchForm()">クリア</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="search-results-section">
+                    <div class="search-results-header">
+                        <div class="results-info">
+                            <span class="results-count">全<span id="recordCount">20</span>件</span>
+                        </div>
+                        <div class="pagination-controls">
+                            <select id="pageSizeSelect" class="page-size-select">
+                                <option value="10" selected>10件</option>
+                                <option value="20">20件</option>
+                                <option value="50">50件</option>
+                                <option value="100">100件</option>
+                            </select>
+                            <div class="pagination">
+                                <button type="button" class="page-btn">«</button>
+                                <button type="button" class="page-btn">‹</button>
+                                <span class="page-info"><input id="curPage" type="text" value="1" class="page-input"> /<span id="totalPage">2</span>ページ</span>
+                                <button type="button" class="page-btn">›</button>
+                                <button type="button" class="page-btn">»</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="results-table-container">
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable">受付日時</th>
+                                    <th class="sortable">ID</th>
+                                    <th class="sortable">顧客名</th>
+                                    <th class="sortable">電話番号</th>
+                                    <th class="sortable">メニュー</th>
+                                    <th class="sortable">ステータス</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reservationListTableBody">
+                                <tr>
+                                    <td>2025-10-08 10:00～11:00</td>
+                                    <td>1</td>
+                                    <td>テスト 花子</td>
+                                    <td>090-1234-5678</td>
+                                    <td>カット</td>
+                                    <td class="status-cell status-temporary">受付待ち</td>
+                                    <td class="action-cell">
+                                        <button type="button" class="link-btn" onclick="location.href='./admin_reservations.html?selectId=1'">選択</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>2025-10-08 10:00～11:00</td>
+                                    <td>5</td>
+                                    <td>テスト 花子</td>
+                                    <td>090-1234-5678</td>
+                                    <td>カット</td>
+                                    <td class="status-cell status-temporary">受付待ち</td>
+                                    <td class="action-cell">
+                                        <button type="button" class="link-btn" onclick="location.href='./admin_reservations.html?selectId=5'">選択</button>
+                                    </td>
+                                </tr>
+                                <tr class="table-row-alt">
+                                    <td>2025-10-08 10:00～11:00</td>
+                                    <td>6</td>
+                                    <td>テスト 太郎</td>
+                                    <td>090-9876-5432</td>
+                                    <td>カット</td>
+                                    <td class="status-cell status-reserved">受付完了</td>
+                                    <td class="action-cell">
+                                        <button type="button" class="link-btn" onclick="location.href='./admin_reservations.html?selectId=6'">選択</button>
+                                    </td>
+                                </tr>
+                                <tr class="table-row-cancelled">
+                                    <td>2025-10-08 10:00～11:00</td>
+                                    <td>7</td>
+                                    <td>テスト 花子</td>
+                                    <td>090-1234-5678</td>
+                                    <td>カット</td>
+                                    <td class="status-cell status-temporary">キャンセル</td>
+                                    <td class="action-cell">-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <div class="popup-overlay" id="cancelReasonPopup" style="display:none;"></div>
+    <script>
+        (function() {
+            var params = new URLSearchParams(location.search);
+            var q = params.get('q');
+            if (q) {
+                var el = document.getElementById('searchWord');
+                if (el) el.value = q;
+            }
+        })();
+        function searchReservations() {
+            alert('検索しました（モック）');
+        }
+        function clearSearchForm() {
+            document.getElementById('searchWord').value = '';
+            document.getElementById('searchMenu').selectedIndex = 0;
+            document.getElementById('searchStatus').selectedIndex = 0;
+        }
+        function setupCancelRowEvents() {
+            if (window.tryServIsSpContent && window.tryServIsSpContent()) return;
+            document.querySelectorAll('.table-row-cancelled').forEach(function(row) {
+                row.addEventListener('mouseenter', function(event) {
+                    if (window.tryServIsSpContent && window.tryServIsSpContent()) return;
+                    var popup = document.getElementById('cancelReasonPopup');
+                    if (!popup) return;
+                    popup.style.display = 'block';
+                    popup.textContent = '顧客都合により予約をキャンセルしました。';
+                    popup.style.position = 'fixed';
+                    popup.style.left = (event.clientX + 15) + 'px';
+                    popup.style.top = (event.clientY + 15) + 'px';
+                    popup.style.background = '#fff';
+                    popup.style.padding = '8px 12px';
+                    popup.style.border = '1px solid #ddd';
+                    popup.style.zIndex = '2000';
+                });
+                row.addEventListener('mouseleave', function() {
+                    var popup = document.getElementById('cancelReasonPopup');
+                    if (popup) popup.style.display = 'none';
+                });
+            });
+        }
+        document.addEventListener('DOMContentLoaded', setupCancelRowEvents);
+    </script>
+</body>
+</html>

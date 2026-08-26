@@ -40,6 +40,8 @@
             }
         }
     </style>
+    <link href="./sp.css" rel="stylesheet">
+    <script src="./sp.js" defer></script>
 </head>
 
 <body>
@@ -609,7 +611,9 @@
             var dragAttr;
             if (placement === 'group') {
                 inner = dragHandle + labelSpan + btnToPool;
-                dragAttr = ' draggable="true"';
+                var isSp = window.matchMedia('(max-width: 768px)').matches ||
+                    document.body.classList.contains('sp-no-dnd');
+                dragAttr = isSp ? ' draggable="false"' : ' draggable="true"';
             } else {
                 inner = btnToGroup + labelSpan;
                 dragAttr = ' draggable="false"';
@@ -945,6 +949,11 @@
             if (!modal) return;
 
             modal.addEventListener('dragstart', function (e) {
+                if (window.matchMedia('(max-width: 768px)').matches ||
+                    document.body.classList.contains('sp-no-dnd')) {
+                    e.preventDefault();
+                    return;
+                }
                 const li = e.target.closest('.rg-item');
                 if (!li) return;
                 const ul = li.closest('.rg-list.rg-drop-zone');
@@ -1035,9 +1044,6 @@
                         rgMoveItemToGroup(li);
                     }
                     return;
-                }
-                if (e.target === modal) {
-                    closeResourceGroupModal();
                 }
             });
         })();

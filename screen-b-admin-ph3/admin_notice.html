@@ -14,6 +14,8 @@
     <!-- Material Design Components JavaScript -->
     <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
     <link href="./style.css" rel="stylesheet">
+    <link href="./sp.css" rel="stylesheet">
+    <script src="./sp.js" defer></script>
 </head>
 
 <body>
@@ -209,12 +211,7 @@ Eメール　： test@test.com
             modal.classList.remove('show');
         }
 
-        // モーダル外クリックで閉じる
-        document.getElementById('noticeDetailModal').addEventListener('click', function (e) {
-            if (e.target === this) {
-                closeNoticeModal();
-            }
-        });
+        // モーダル外クリックでは閉じない（×ボタン・閉じるボタンのみ）
 
         // URLパラメータをチェックしてお知らせ詳細を表示
         function checkUrlParameters() {

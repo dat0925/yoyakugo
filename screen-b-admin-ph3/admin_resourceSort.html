@@ -15,6 +15,8 @@
     <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
 
     <link href="./style.css" rel="stylesheet">
+    <link href="./sp.css" rel="stylesheet">
+    <script src="./sp.js" defer></script>
 </head>
 
 <body>
@@ -104,7 +106,9 @@
         function createLineItem(resource, order) {
             const resourceItem = document.createElement('div');
             resourceItem.className = 'drag-item';
-            resourceItem.draggable = true;
+            const isSp = window.matchMedia('(max-width: 768px)').matches ||
+                document.body.classList.contains('sp-no-dnd');
+            resourceItem.draggable = !isSp;
             resourceItem.dataset.resourceId = resource.id;
 
             resourceItem.innerHTML = `
@@ -127,6 +131,11 @@
 
         // ドラッグ開始
         function handleDragStart(e) {
+            if (window.matchMedia('(max-width: 768px)').matches ||
+                document.body.classList.contains('sp-no-dnd')) {
+                e.preventDefault();
+                return;
+            }
             draggedElement = this;
             this.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';

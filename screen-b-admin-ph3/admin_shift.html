@@ -127,6 +127,8 @@
             display: inline-block;
         }
     </style>
+    <link href="./sp.css" rel="stylesheet">
+    <script src="./sp.js" defer></script>
 </head>
 
 <body>
@@ -839,17 +841,7 @@
             }
         }
 
-        // モーダル外クリックで閉じる
-        document.addEventListener('DOMContentLoaded', function () {
-            const editCalendarModal = document.getElementById('editCalendarModal');
-            if (editCalendarModal) {
-                editCalendarModal.addEventListener('click', function (e) {
-                    if (e.target === this) {
-                        closeEditCalendarModal();
-                    }
-                });
-            }
-        });
+        // モーダル外クリックでは閉じない（×ボタン・閉じるボタンのみ）
 
         // 前月
         function previousMonth() {
@@ -981,36 +973,61 @@
             }
         }
 
-        // ドラッグ&ドロップ機能の初期化
-        function initializeDragDrop() {
-            const shiftItems = document.getElementById('shiftItems');
-            if (shiftItems && typeof Sortable !== 'undefined') {
-                // SortableJSライブラリを使用してドラッグ&ドロップを初期化
-                const sortable = new Sortable(shiftItems, {
-                    animation: 150,
-                    ghostClass: 'ghost',
-                    chosenClass: 'chosen',
-                    dragClass: 'drag',
-                    handle: '.shift-item', // shift-itemクラスをハンドルとして指定
-                    onStart: function (evt) {
-                        console.log('ドラッグ開始: 位置', evt.oldIndex);
-                    },
-                    onEnd: function (evt) {
-                        console.log('ドロップ完了: 位置', evt.oldIndex, 'から', evt.newIndex, 'へ');
-                        updateShiftOrder();
-                    }
-                });
+        // ドラッグ&ドロップ機能の初期化（SP幅では無効）
+        var shiftSortableInstance = null;
 
-                // Sortableが正常に初期化されたかチェック
-                if (sortable) {
-                    console.log('SortableJSが正常に初期化されました');
-                } else {
-                    console.log('SortableJSの初期化に失敗しました');
-                }
-            } else {
-                console.log('SortableJSライブラリが読み込まれていません');
+        function isSpNoDnd() {
+            return (typeof window.tryServIsSpContent === 'function' && window.tryServIsSpContent()) ||
+                window.matchMedia('(max-width: 768px)').matches ||
+                document.body.classList.contains('sp-no-dnd');
+        }
+
+        function destroyShiftSortable() {
+            if (shiftSortableInstance) {
+                shiftSortableInstance.destroy();
+                shiftSortableInstance = null;
             }
         }
+
+        function initializeDragDrop() {
+            const shiftItems = document.getElementById('shiftItems');
+            if (!shiftItems || typeof Sortable === 'undefined') {
+                console.log('SortableJSライブラリが読み込まれていません');
+                return;
+            }
+
+            destroyShiftSortable();
+
+            if (isSpNoDnd()) {
+                console.log('SP幅のため Sortable を無効化しました');
+                return;
+            }
+
+            shiftSortableInstance = new Sortable(shiftItems, {
+                animation: 150,
+                ghostClass: 'ghost',
+                chosenClass: 'chosen',
+                dragClass: 'drag',
+                handle: '.shift-item',
+                onStart: function (evt) {
+                    console.log('ドラッグ開始: 位置', evt.oldIndex);
+                },
+                onEnd: function (evt) {
+                    console.log('ドロップ完了: 位置', evt.oldIndex, 'から', evt.newIndex, 'へ');
+                    updateShiftOrder();
+                }
+            });
+
+            if (shiftSortableInstance) {
+                console.log('SortableJSが正常に初期化されました');
+            } else {
+                console.log('SortableJSの初期化に失敗しました');
+            }
+        }
+
+        window.tryServOnSpLayoutChange = function () {
+            initializeDragDrop();
+        };
 
         // シフト順序の更新
         function updateShiftOrder() {

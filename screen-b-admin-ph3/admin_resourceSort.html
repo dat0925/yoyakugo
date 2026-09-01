@@ -57,7 +57,7 @@
 
                 <div class="sort-container">
                     <div class="sort-info">
-                        <p>リソースをドラッグ&ドロップで並び替えることができます。</p>
+                        <p>▲▼ボタンでリソースの並び替えができます（PCではドラッグも可能です）。</p>
                     </div>
 
                     <div class="resource-list" id="resourceList">
@@ -67,15 +67,17 @@
                     <div class="sort-actions">
                         <button type="button" class="form-btn modal-btn-save"
                             onclick="saveSortOrder()">並び替えを保存</button>
-                        <button type="button" class="form-btn form-btn-cancel" onclick="goBack()">閉じる</button>
+                        <button type="button" class="form-btn form-btn-cancel sp-page-cancel-btn" onclick="goBack()">キャンセル</button>
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="./js/list_sort_buttons.js"></script>
+    <script src="./js/pc_sortable.js"></script>
     <script>
-        // サンプルリソースデータ
         const sampleLines = [
             {id: 1, name: 'チェアA', description: 'チェアAのリソース', webReception: 'ON', updateDate: '2025-01-15'},
             {id: 2, name: 'チェアB', description: 'チェアBのリソース', webReception: 'ON', updateDate: '2025-01-14'},
@@ -84,137 +86,56 @@
             {id: 5, name: 'チェアE', description: 'チェアEのリソース', webReception: 'ON', updateDate: '2025-01-11'}
         ];
 
-        let draggedElement = null;
-
-        // ページ読み込み時にリソースリストを初期化
         document.addEventListener('DOMContentLoaded', function () {
             initializeLineList();
+            ListSortButtons.bind(document.getElementById('resourceList'), '.drag-item', updateOrderNumbers);
         });
 
-        // リソースリストを初期化
         function initializeLineList() {
             const resourceList = document.getElementById('resourceList');
             resourceList.innerHTML = '';
 
             sampleLines.forEach((resource, index) => {
-                const resourceItem = createLineItem(resource, index + 1);
-                resourceList.appendChild(resourceItem);
+                resourceList.appendChild(createLineItem(resource, index + 1));
             });
+            updateOrderNumbers();
         }
 
-        // リソースアイテムを作成
         function createLineItem(resource, order) {
             const resourceItem = document.createElement('div');
             resourceItem.className = 'drag-item';
-            const isSp = window.matchMedia('(max-width: 768px)').matches ||
-                document.body.classList.contains('sp-no-dnd');
-            resourceItem.draggable = !isSp;
             resourceItem.dataset.resourceId = resource.id;
 
-            resourceItem.innerHTML = `
-            <div class="drag-handle">⋮⋮</div>
-            <div class="drag-info">
-                <div class="drag-name">${resource.name}</div>
-                <div class="drag-details">${resource.description} | WEB受付: ${resource.webReception} | 更新日: ${resource.updateDate}</div>
-            </div>
-            <div class="drag-order">${order}</div>
-        `;
-
-            // ドラッグイベントを追加
-            resourceItem.addEventListener('dragstart', handleDragStart);
-            resourceItem.addEventListener('dragend', handleDragEnd);
-            resourceItem.addEventListener('dragover', handleDragOver);
-            resourceItem.addEventListener('drop', handleDrop);
+            resourceItem.innerHTML =
+                '<span class="drag-handle" aria-hidden="true" title="ドラッグで並び替え">⋮⋮</span>' +
+                ListSortButtons.html() +
+                '<div class="drag-info">' +
+                    '<div class="drag-name">' + resource.name + '</div>' +
+                    '<div class="drag-details">' + resource.description + ' | WEB受付: ' + resource.webReception + ' | 更新日: ' + resource.updateDate + '</div>' +
+                '</div>' +
+                '<div class="drag-order">' + order + '</div>';
 
             return resourceItem;
         }
 
-        // ドラッグ開始
-        function handleDragStart(e) {
-            if (window.matchMedia('(max-width: 768px)').matches ||
-                document.body.classList.contains('sp-no-dnd')) {
-                e.preventDefault();
-                return;
-            }
-            draggedElement = this;
-            this.classList.add('dragging');
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/html', this.outerHTML);
-        }
-
-        // ドラッグ終了
-        function handleDragEnd(e) {
-            this.classList.remove('dragging');
-            draggedElement = null;
-
-            // すべてのdrag-overクラスを削除
-            document.querySelectorAll('.menu-item').forEach(item => {
-                item.classList.remove('drag-over');
-            });
-        }
-
-        // ドラッグオーバー
-        function handleDragOver(e) {
-            if (e.preventDefault) {
-                e.preventDefault();
-            }
-
-            e.dataTransfer.dropEffect = 'move';
-            this.classList.add('drag-over');
-
-            return false;
-        }
-
-        // ドロップ
-        function handleDrop(e) {
-            if (e.stopPropagation) {
-                e.stopPropagation();
-            }
-
-            if (draggedElement !== this) {
-                const resourceList = document.getElementById('resourceList');
-                const draggedIndex = Array.from(resourceList.children).indexOf(draggedElement);
-                const targetIndex = Array.from(resourceList.children).indexOf(this);
-
-                if (draggedIndex < targetIndex) {
-                    resourceList.insertBefore(draggedElement, this.nextSibling);
-                } else {
-                    resourceList.insertBefore(draggedElement, this);
-                }
-
-                // 順序番号を更新
-                updateOrderNumbers();
-            }
-
-            this.classList.remove('drag-over');
-            return false;
-        }
-
-        // 順序番号を更新
         function updateOrderNumbers() {
-            const resourceItems = document.querySelectorAll('.resource-item');
-            resourceItems.forEach((item, index) => {
-                const orderElement = item.querySelector('.resource-order');
-                orderElement.textContent = index + 1;
+            document.querySelectorAll('#resourceList .drag-item').forEach((item, index) => {
+                const orderElement = item.querySelector('.drag-order');
+                if (orderElement) orderElement.textContent = index + 1;
             });
         }
 
-        // 並び替えを保存
         function saveSortOrder() {
-            const resourceItems = document.querySelectorAll('.resource-item');
+            const resourceItems = document.querySelectorAll('#resourceList .drag-item');
             const newOrder = Array.from(resourceItems).map(item => ({
-                id: parseInt(item.dataset.resourceId),
+                id: parseInt(item.dataset.resourceId, 10),
                 order: Array.from(resourceItems).indexOf(item) + 1
             }));
 
-            // ここで実際の保存処理を行う
-            // 例: APIに送信、ローカルストレージに保存など
-
-            // リソース管理画面に戻る
+            console.log('新しい並び順:', newOrder);
             window.location.href = './admin_resources.html';
         }
 
-        // 戻るボタンの処理
         function goBack() {
             window.history.back();
         }

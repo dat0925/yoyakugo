@@ -14,8 +14,6 @@
     <!-- Material Design Components JavaScript -->
     <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
 
-    <!-- SortableJS -->
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <link href="./style.css" rel="stylesheet">
 
     <!-- カレンダー用カスタムスタイル -->
@@ -513,7 +511,7 @@
                         </div>
                         <div class="search-form-actions">
                             <button type="button" class="btn modal-btn-save" onclick="saveSettings();">保存</button>
-                            <button type="button" class="btn cancel-btn" onclick="window.location.href='admin_resources.html'">閉じる</button>
+                            <button type="button" class="btn cancel-btn sp-page-cancel-btn" onclick="window.location.href='admin_resources.html'">キャンセル</button>
                         </div>
                     </div>
                 </div>
@@ -973,105 +971,6 @@
             }
         }
 
-        // ドラッグ&ドロップ機能の初期化（SP幅では無効）
-        var shiftSortableInstance = null;
-
-        function isSpNoDnd() {
-            return (typeof window.tryServIsSpContent === 'function' && window.tryServIsSpContent()) ||
-                window.matchMedia('(max-width: 768px)').matches ||
-                document.body.classList.contains('sp-no-dnd');
-        }
-
-        function destroyShiftSortable() {
-            if (shiftSortableInstance) {
-                shiftSortableInstance.destroy();
-                shiftSortableInstance = null;
-            }
-        }
-
-        function initializeDragDrop() {
-            const shiftItems = document.getElementById('shiftItems');
-            if (!shiftItems || typeof Sortable === 'undefined') {
-                console.log('SortableJSライブラリが読み込まれていません');
-                return;
-            }
-
-            destroyShiftSortable();
-
-            if (isSpNoDnd()) {
-                console.log('SP幅のため Sortable を無効化しました');
-                return;
-            }
-
-            shiftSortableInstance = new Sortable(shiftItems, {
-                animation: 150,
-                ghostClass: 'ghost',
-                chosenClass: 'chosen',
-                dragClass: 'drag',
-                handle: '.shift-item',
-                onStart: function (evt) {
-                    console.log('ドラッグ開始: 位置', evt.oldIndex);
-                },
-                onEnd: function (evt) {
-                    console.log('ドロップ完了: 位置', evt.oldIndex, 'から', evt.newIndex, 'へ');
-                    updateShiftOrder();
-                }
-            });
-
-            if (shiftSortableInstance) {
-                console.log('SortableJSが正常に初期化されました');
-            } else {
-                console.log('SortableJSの初期化に失敗しました');
-            }
-        }
-
-        window.tryServOnSpLayoutChange = function () {
-            initializeDragDrop();
-        };
-
-        // シフト順序の更新
-        function updateShiftOrder() {
-            const shiftItems = document.querySelectorAll('.shift-item');
-            const orderInfo = [];
-
-            shiftItems.forEach((item, index) => {
-                const dataId = item.getAttribute('data-id');
-                const shiftNameInput = item.querySelector('input[name="shiftName"]');
-                const shiftName = shiftNameInput ? shiftNameInput.value : `シフト${dataId}`;
-
-                orderInfo.push(`${index + 1}. ${shiftName}`);
-                console.log(`シフト${dataId} (${shiftName}) の順序: ${index + 1}`);
-            });
-
-            // 順序変更をスタッフに通知
-            if (orderInfo.length > 0) {
-                console.log('新しいシフト順序:', orderInfo.join('\n'));
-
-                // 簡単な通知を表示（オプション）
-                const notification = document.createElement('div');
-                notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: var(--ok);
-                color: white;
-                padding: 12px 20px;
-                border-radius: 6px;
-                box-shadow: var(--shadow);
-                z-index: 10000;
-                font-size: 0.8rem;
-                animation: slideIn 0.3s ease;
-            `;
-                notification.textContent = 'シフトの順序を変更しました';
-                document.body.appendChild(notification);
-
-                // 3秒後に通知を削除
-                setTimeout(() => {
-                    notification.remove();
-                }, 3000);
-            }
-        }
-
         // 時間セレクトボックスの初期化
         function initializeTimeSelects() {
             // 時間のオプションを生成（0〜23時）
@@ -1161,8 +1060,6 @@
             initializeTimeSelects();
 
             generateCalendar();
-            // ドラッグ&ドロップ機能を初期化
-            setTimeout(initializeDragDrop, 100);
         });
         function saveEdit() {
             closeEditModal();

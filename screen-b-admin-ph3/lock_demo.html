@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>顧客管理｜管理画面モック</title>
+    <title>【検証用】顧客管理（スクロールロックの再現）｜管理画面モック</title>
 
     <!-- Material Design Components CSS -->
     <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
@@ -53,6 +53,16 @@
         </header>
         <!-- Main -->
         <main class="main">
+            <!-- ▼ 検証用に追加したバー（本来のモックにはありません） -->
+            <div style="background:#FBF3E6;border:1px solid #E0A64E;color:#8A5200;padding:12px 14px;margin:0 0 12px;font-size:13px;line-height:1.75;border-radius:4px">
+                <b>検証用ページです。</b><br>
+                顧客管理（<code>admin_customers.html</code>）に、<b>非表示のモーダルを1つ置いただけ</b>のページです。開いてもいません。<br>
+                スマホ幅（1024px未満）で見ると<b>下へスクロールできず</b>、2件目より先の顧客とページャに到達できません。<br>
+                比較は <a href="./admin_customers.html" style="color:#8A5200">admin_customers.html</a> を開いてください（同じ画面で、こちらはスクロールできます）。<br>
+                <span style="font-size:12px;color:#A07020">原因は sp.js の <code>isModalVisible()</code> が親要素の表示状態を見ていないこと（再レビュー FIX-07）。PC幅では起きません。</span>
+            </div>
+            <!-- ▲ ここまで検証用 -->
+
             <!-- 顧客管理セクション -->
             <div class="main-section">
                 <div class="main-header">
@@ -630,6 +640,14 @@
             });
         }
     </script>
+
+<!-- ▼ 検証用：非表示のオーバーレイの中にモーダルを1つ置く（FIX-07 の再現。本来のモックにはありません） -->
+<div class="popup-overlay" id="lockDemoOverlay" style="display:none">
+    <div class="reservation-modal" id="lockDemoModal">
+        <div class="modal-header"><h2 class="modal-title">（検証用・表示されません）</h2></div>
+    </div>
+</div>
+<!-- ▲ ここまで検証用 -->
 </body>
 
 </html>

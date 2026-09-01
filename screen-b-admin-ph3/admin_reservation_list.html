@@ -10,6 +10,11 @@
     <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
     <link href="./style.css" rel="stylesheet">
     <link href="./sp.css" rel="stylesheet">
+    <style>
+        .search-form-content {
+            background: transparent;
+        }
+    </style>
     <script src="./sp.js" defer></script>
 </head>
 <body>
@@ -44,7 +49,7 @@
                     <button type="button" class="modal-close" onclick="location.href='./admin_reservations.html'" aria-label="閉じる">×</button>
                 </div>
 
-                <div class="setting-form-section">
+                <div class="setting-form-section" data-sp-search-filter data-sp-search-anchor=".main-header">
                     <div class="search-form-content">
                         <h3 class="search-form-title">検索条件</h3>
                         <div class="search-form-grid-setting">
@@ -179,7 +184,7 @@
             }
         })();
         function searchReservations() {
-            alert('検索しました（モック）');
+            // モック：検索処理（SPではパネルは開いたまま）
         }
         function clearSearchForm() {
             document.getElementById('searchWord').value = '';

@@ -744,7 +744,7 @@
                 <div class="rg-modal-body">
                     <div class="rg-left">
                         <div class="rg-group-block">
-                            <p class="rg-hint rg-group-hint">条件にあったオプションが、上から順に優先されます。ドラッグで並べ替えができます。<br/>矢印（→）でオプションメニューグループから外すことができます。</p>
+                            <p class="rg-hint rg-group-hint">条件にあったオプションが、上から順に優先されます。▲▼ボタンで並べ替えができます。<br/>矢印（→）でオプションメニューグループから外すことができます。</p>
                             <ul class="rg-list rg-drop-zone" id="optionGroupSelectedList" data-zone="group"></ul>
                         </div>
                     </div>
@@ -834,6 +834,9 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="./js/list_sort_buttons.js"></script>
+    <script src="./js/pc_sortable.js"></script>
     <script>
         // 元のメニューデータを保持
         let originalMenuData = [];
@@ -1448,32 +1451,43 @@
                 if (!o) return;
                 poolList.appendChild(createOptionLinkItem(o, 'pool'));
             });
+
+            ListSortButtons.refresh(selectedList, '.rg-item');
+            if (typeof TryServPcSortable !== 'undefined') {
+                TryServPcSortable.init();
+            }
         }
 
         function createOptionLinkItem(o, zone) {
             var li = document.createElement('li');
-            li.className = 'rg-item';
+            li.className = 'rg-item' + (zone === 'group' ? ' rg-item--option-mock' : ' rg-item--option-pool');
             li.setAttribute('data-id', o.id);
+
             var label = document.createElement('span');
             label.className = 'rg-item-label';
             label.textContent = o.name + '（' + formatOptionMenuMeta(o) + '）';
+
             var btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'rg-move-btn ' + (zone === 'group' ? 'rg-move-to-pool' : 'rg-move-to-group');
+
             if (zone === 'group') {
+                var dragHandle = document.createElement('span');
+                dragHandle.className = 'rg-drag-handle';
+                dragHandle.title = 'ドラッグで並び替え';
+                dragHandle.setAttribute('aria-hidden', 'true');
+                dragHandle.innerHTML = '<span class="material-icons rg-drag-handle-icon">drag_indicator</span>';
+
                 btn.title = 'オプションメニューグループから外す';
                 btn.setAttribute('aria-label', 'オプションメニューグループから外す');
                 btn.textContent = '→';
                 btn.addEventListener('click', function() { moveOptionToPool(o.id); });
-                var dragHandle = document.createElement('span');
-                dragHandle.className = 'rg-drag-handle';
-                dragHandle.title = 'ドラッグして並べ替え';
-                dragHandle.innerHTML = '<i class="material-icons rg-drag-handle-icon" aria-hidden="true">drag_indicator</i>';
-                var isSp = window.matchMedia('(max-width: 768px)').matches ||
-                    document.body.classList.contains('sp-no-dnd');
-                li.setAttribute('draggable', isSp ? 'false' : 'true');
-                if (isSp) li.classList.add('rg-item--drag-disabled');
+
+                var sortWrap = document.createElement('div');
+                sortWrap.innerHTML = ListSortButtons.html();
+
                 li.appendChild(dragHandle);
+                li.appendChild(sortWrap.firstChild);
                 li.appendChild(label);
                 li.appendChild(btn);
             } else {
@@ -1496,94 +1510,22 @@
                 function(li) { return String(li.getAttribute('data-id')); }
             );
         }
-
-        function ogGetDragAfterElementInList(container, y) {
-            var draggableElements = Array.prototype.slice
-                .call(container.querySelectorAll('.rg-item:not(.rg-dragging)'))
-                .filter(function(child) {
-                    return child.parentNode === container;
-                });
-            return draggableElements.reduce(
-                function(closest, child) {
-                    var box = child.getBoundingClientRect();
-                    var offset = y - box.top - box.height / 2;
-                    if (offset < 0 && offset > closest.offset) {
-                        return { offset: offset, element: child };
-                    }
-                    return closest;
-                },
-                { offset: Number.NEGATIVE_INFINITY, element: undefined }
-            ).element;
-        }
+        window.syncEditingOptionGroupOrderFromDom = syncEditingOptionGroupOrderFromDom;
 
         (function ogInitOptionGroupSortUi() {
             var modal = document.getElementById('editOptionGroupModal');
-            if (!modal) return;
-            var draggedItem = null;
-
-            modal.addEventListener('dragstart', function(e) {
-                if (window.matchMedia('(max-width: 768px)').matches ||
-                    document.body.classList.contains('sp-no-dnd')) {
-                    e.preventDefault();
-                    return;
-                }
-                var li = e.target.closest('.rg-item');
-                if (!li) return;
-                var ul = li.closest('.rg-list.rg-drop-zone');
-                if (!ul || ul.dataset.zone !== 'group') return;
-                if (e.target.closest('.rg-move-btn')) {
-                    e.preventDefault();
-                    return;
-                }
-                draggedItem = li;
-                li.classList.add('rg-dragging');
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', li.dataset.id || '');
-            });
-
-            modal.addEventListener('dragend', function() {
-                if (draggedItem) {
-                    draggedItem.classList.remove('rg-dragging');
-                }
-                draggedItem = null;
-                modal.querySelectorAll('.rg-list[data-zone="group"].rg-sort-target-over').forEach(function(el) {
-                    el.classList.remove('rg-sort-target-over');
-                });
-                syncEditingOptionGroupOrderFromDom();
-            });
-
-            modal.addEventListener('dragover', function(e) {
-                if (!draggedItem) return;
-                var ul = e.target.closest('ul.rg-list.rg-drop-zone');
-                if (!ul || ul.dataset.zone !== 'group') return;
-                if (draggedItem.parentNode !== ul) return;
-
+            if (!modal || modal._sortClickBound) return;
+            modal._sortClickBound = true;
+            modal.addEventListener('click', function(e) {
+                var sortBtn = e.target.closest('[data-sort-dir]');
+                if (!sortBtn) return;
                 e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                ul.classList.add('rg-sort-target-over');
-
-                var after = ogGetDragAfterElementInList(ul, e.clientY);
-                if (after == null) {
-                    ul.appendChild(draggedItem);
-                } else {
-                    ul.insertBefore(draggedItem, after);
-                }
-            });
-
-            modal.addEventListener('dragleave', function(e) {
-                var ul = e.target.closest('ul.rg-list.rg-drop-zone[data-zone="group"]');
-                if (ul && e.relatedTarget && !ul.contains(e.relatedTarget)) {
-                    ul.classList.remove('rg-sort-target-over');
-                }
-            });
-
-            modal.addEventListener('drop', function(e) {
-                var ul = e.target.closest('ul.rg-list.rg-drop-zone[data-zone="group"]');
-                if (ul) {
-                    e.preventDefault();
-                    ul.classList.remove('rg-sort-target-over');
-                    syncEditingOptionGroupOrderFromDom();
-                }
+                var li = sortBtn.closest('.rg-item');
+                var ul = li && li.closest('#optionGroupSelectedList');
+                if (!li || !ul) return;
+                ListSortButtons.move(li, sortBtn.getAttribute('data-sort-dir') === 'up' ? -1 : 1);
+                ListSortButtons.refresh(ul, '.rg-item');
+                syncEditingOptionGroupOrderFromDom();
             });
         })();
 

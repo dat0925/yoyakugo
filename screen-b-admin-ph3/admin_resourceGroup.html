@@ -20,7 +20,7 @@
             display: none;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 1023px) {
             .results-table-container {
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
@@ -217,6 +217,9 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="./js/list_sort_buttons.js"></script>
+    <script src="./js/pc_sortable.js"></script>
     <script>
         const RESOURCE_GROUP_MAX = 99;
         let rgCurrentPage = 1;
@@ -582,9 +585,21 @@
         function rgResourceMockBgStyleForItem(item) {
             var hex = RG_RESOURCE_MOCK_PALETTE[rgPaletteIndexForItem(item)];
             return (
-                ' style="background-color:' + hex + ';border:1px solid rgba(0,0,0,0.22);color:#fff;"'
+                ' style="background-color:' + hex + ';border:1px solid rgba(0,0,0,0.22);color:#fff;"' +
+                ' data-resource-color="' + hex + '"'
             );
         }
+
+        function rgApplyResourceSortButtonColors() {
+            document.querySelectorAll('#resourceGroupModal .rg-item--resource-mock[data-resource-color]').forEach(function (li) {
+                var color = li.getAttribute('data-resource-color');
+                if (!color) return;
+                li.querySelectorAll('.sort-order-btn').forEach(function (btn) {
+                    btn.style.backgroundColor = color;
+                });
+            });
+        }
+        window.rgApplyResourceSortButtonColors = rgApplyResourceSortButtonColors;
 
         /**
          * @param {{ type: string, id: string, label: string }} item
@@ -603,47 +618,28 @@
                 '<button type="button" class="rg-move-btn rg-move-to-group" title="グループに追加" aria-label="グループに追加">' +
                 '←' +
                 '</button>';
+            const sortBtns = ListSortButtons.html();
             const dragHandle =
-                '<span class="rg-drag-handle" title="ドラッグして並べ替え">' +
-                '<i class="material-icons rg-drag-handle-icon" aria-hidden="true">drag_indicator</i>' +
-                '</span>';
+                '<span class="rg-drag-handle" aria-hidden="true" title="ドラッグで並び替え">' +
+                '<span class="material-icons rg-drag-handle-icon">drag_indicator</span></span>';
             var inner;
-            var dragAttr;
             if (placement === 'group') {
-                inner = dragHandle + labelSpan + btnToPool;
-                var isSp = window.matchMedia('(max-width: 768px)').matches ||
-                    document.body.classList.contains('sp-no-dnd');
-                dragAttr = isSp ? ' draggable="false"' : ' draggable="true"';
+                inner = dragHandle + sortBtns + labelSpan + btnToPool;
             } else {
                 inner = btnToGroup + labelSpan;
-                dragAttr = ' draggable="false"';
             }
             return (
                 '<li class="rg-item rg-item--resource-mock ' + cls + '" data-type="' + item.type + '" data-id="' +
-                rgEscapeHtmlAttr(String(item.id)) + '"' + dragAttr + mockBg + '>' + inner + '</li>'
+                rgEscapeHtmlAttr(String(item.id)) + '"' + mockBg + '>' + inner + '</li>'
             );
         }
 
-        /** 割当リスト内の並べ替え用（同じ ul 内のみ） */
-        let rgDraggedGroupItem = null;
-
-        function rgGetDragAfterElementInList(container, y) {
-            const draggableElements = Array.prototype.slice
-                .call(container.querySelectorAll('.rg-item:not(.rg-dragging)'))
-                .filter(function (child) {
-                    return child.parentNode === container;
-                });
-            return draggableElements.reduce(
-                function (closest, child) {
-                    const box = child.getBoundingClientRect();
-                    const offset = y - box.top - box.height / 2;
-                    if (offset < 0 && offset > closest.offset) {
-                        return { offset: offset, element: child };
-                    }
-                    return closest;
-                },
-                { offset: Number.NEGATIVE_INFINITY, element: undefined }
-            ).element;
+        function rgRefreshGroupSortButtons() {
+            document.querySelectorAll('#resourceGroupModal ul.rg-list[data-zone="group"]').forEach(function (ul) {
+                ListSortButtons.refresh(ul, '.rg-item');
+            });
+            rgApplyResourceSortButtonColors();
+            if (typeof TryServPcSortable !== 'undefined') TryServPcSortable.init();
         }
 
         function rgEscapeHtmlAttr(str) {
@@ -668,7 +664,7 @@
                 '<label class="rg-kind-label"><input type="radio" class="rg-group-kind-input" name="rgGroupKind-' + idx + '" value="staff"' + (k === 'staff' ? ' checked' : '') + '> 担当者</label>' +
                 '<label class="rg-kind-label"><input type="radio" class="rg-group-kind-input" name="rgGroupKind-' + idx + '" value="equipment"' + (k === 'equipment' ? ' checked' : '') + '> 設備・機器類</label>' +
                 '</div></div>' +
-                '<p class="rg-hint rg-group-hint">条件にあったリソースが、<strong>上から順に優先</strong>されます。ドラッグで並べ替えができます。<br/>矢印（→）でリソースグループから外すことができます。<br/>受付時に人数が指定されている場合は、定員や最少受付人数の条件に合うリソースが、より優先されます。</p>'
+                '<p class="rg-hint rg-group-hint">条件にあったリソースが、<strong>上から順に優先</strong>されます。▲▼ボタンで並べ替えができます。<br/>矢印（→）でリソースグループから外すことができます。<br/>受付時に人数が指定されている場合は、定員や最少受付人数の条件に合うリソースが、より優先されます。</p>'
             );
         }
 
@@ -686,6 +682,7 @@
                 RG_MASTER_EQUIPMENT.forEach(function (e) {
                     document.getElementById('rgPoolEquipment').insertAdjacentHTML('beforeend', rgItemHtml({ type: 'equipment', id: e.id, label: e.label }, 'pool'));
                 });
+                rgRefreshGroupSortButtons();
                 return;
             }
 
@@ -722,6 +719,7 @@
                     document.getElementById('rgPoolEquipment').insertAdjacentHTML('beforeend', rgItemHtml({ type: 'equipment', id: e.id, label: e.label }, 'pool'));
                 }
             });
+            rgRefreshGroupSortButtons();
         }
 
         function rgItemLabelFromLi(li) {
@@ -774,6 +772,7 @@
             li.remove();
             targetUl.insertAdjacentHTML('beforeend', rgItemHtml({ type: type, id: id, label: label }, 'group'));
             rgUpdatePoolDraggability();
+            rgRefreshGroupSortButtons();
         }
 
         /**
@@ -948,69 +947,6 @@
             const modal = document.getElementById('resourceGroupModal');
             if (!modal) return;
 
-            modal.addEventListener('dragstart', function (e) {
-                if (window.matchMedia('(max-width: 768px)').matches ||
-                    document.body.classList.contains('sp-no-dnd')) {
-                    e.preventDefault();
-                    return;
-                }
-                const li = e.target.closest('.rg-item');
-                if (!li) return;
-                const ul = li.closest('.rg-list.rg-drop-zone');
-                if (!ul || ul.dataset.zone !== 'group') return;
-                if (e.target.closest('.rg-move-btn')) {
-                    e.preventDefault();
-                    return;
-                }
-                rgDraggedGroupItem = li;
-                li.classList.add('rg-dragging');
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', li.dataset.id || '');
-            });
-
-            modal.addEventListener('dragend', function () {
-                if (rgDraggedGroupItem) {
-                    rgDraggedGroupItem.classList.remove('rg-dragging');
-                }
-                rgDraggedGroupItem = null;
-                modal.querySelectorAll('.rg-list[data-zone="group"].rg-sort-target-over').forEach(function (el) {
-                    el.classList.remove('rg-sort-target-over');
-                });
-            });
-
-            modal.addEventListener('dragover', function (e) {
-                if (!rgDraggedGroupItem) return;
-                const ul = e.target.closest('ul.rg-list.rg-drop-zone');
-                if (!ul || ul.dataset.zone !== 'group') return;
-                if (rgDraggedGroupItem.parentNode !== ul) return;
-
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                ul.classList.add('rg-sort-target-over');
-
-                const after = rgGetDragAfterElementInList(ul, e.clientY);
-                if (after == null) {
-                    ul.appendChild(rgDraggedGroupItem);
-                } else {
-                    ul.insertBefore(rgDraggedGroupItem, after);
-                }
-            });
-
-            modal.addEventListener('dragleave', function (e) {
-                const ul = e.target.closest('ul.rg-list.rg-drop-zone[data-zone="group"]');
-                if (ul && e.relatedTarget && !ul.contains(e.relatedTarget)) {
-                    ul.classList.remove('rg-sort-target-over');
-                }
-            });
-
-            modal.addEventListener('drop', function (e) {
-                const ul = e.target.closest('ul.rg-list.rg-drop-zone[data-zone="group"]');
-                if (ul) {
-                    e.preventDefault();
-                    ul.classList.remove('rg-sort-target-over');
-                }
-            });
-
             modal.addEventListener('change', function (e) {
                 if (e.target && e.target.classList && e.target.classList.contains('rg-group-kind-input')) {
                     rgLastPanelKind = e.target.value;
@@ -1024,6 +960,17 @@
             });
 
             modal.addEventListener('click', function (e) {
+                const sortBtn = e.target.closest('[data-sort-dir]');
+                if (sortBtn) {
+                    e.preventDefault();
+                    const li = sortBtn.closest('.rg-item');
+                    const ul = li && li.closest('ul.rg-list[data-zone="group"]');
+                    if (li && ul) {
+                        ListSortButtons.move(li, sortBtn.getAttribute('data-sort-dir') === 'up' ? -1 : 1);
+                        ListSortButtons.refresh(ul, '.rg-item');
+                    }
+                    return;
+                }
                 const toPool = e.target.closest('.rg-move-to-pool');
                 if (toPool) {
                     e.preventDefault();

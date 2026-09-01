@@ -346,7 +346,10 @@
                     onchange="if(this.value.trim()){showReservationListPopup(this.value);}" />
             </div>
             <button class="btn normal-btn print-reservation-btn" onclick="printReservation()">受付情報印刷</button>
-            <button class="btn warn-btn" onclick="toggleOnlineReception()">WEB受付停止</button>
+            <button type="button" class="btn warn-btn schedule-web-reception-btn" id="webReceptionToggleBtn" onclick="toggleOnlineReception()">
+                <i class="material-icons schedule-web-reception-icon" aria-hidden="true">block</i>
+                <span class="schedule-web-reception-label">WEB受付停止</span>
+            </button>
         </header>
         <!-- Main -->
         <main class="main">
@@ -354,11 +357,11 @@
             <div class="schedule-section">
                 <div class="schedule-header">
                     <div class="schedule-title-section">
-                        <h2 class="schedule-title">📅 受付・予約画面</h2>
+                        <h2 class="schedule-title">📅 受付・予約管理</h2>
 
-                        <button class="date-btn" id="filterToggleBtn" onclick="toggleResourceFilter()">
+                        <button class="date-btn schedule-filter-btn" id="filterToggleBtn" onclick="toggleResourceFilter()">
                             <i class="material-icons">filter_list</i>
-                            <span>フィルター</span>
+                            <span class="schedule-filter-btn-label">フィルター</span>
                         </button>
                     </div>
                     <div class="schedule-controls">
@@ -372,6 +375,10 @@
                         </div>
 
                         <div class="date-controls">
+                            <button type="button" class="date-btn schedule-refresh-btn" id="scheduleRefreshBtn" onclick="generateScheduleGrid()" aria-label="更新">
+                                <i class="material-icons">refresh</i>
+                                <span class="schedule-refresh-label">更新</span>
+                            </button>
                             <button class="date-btn" id="prevDay">
                                 <i class="material-icons">chevron_left</i>
                                 前日
@@ -713,16 +720,27 @@
                 </div>
             </div>
 
-            <div class="modal-actions">
-                <button type="button" class="modal-btn modal-btn-primary modal-resend-mail-btn" id="resendCompletionMailBtn"
-                    onclick="resendCompletionMailFromDetail()">受付・予約メールの再送信</button>
-                <button type="button" class="modal-btn modal-btn-primary"
+            <div class="modal-actions modal-actions--detail">
+                <div class="modal-overflow-menu" id="detailOverflowMenu" role="menu" hidden>
+                    <button type="button" class="modal-overflow-menu-item" role="menuitem"
+                        onclick="resendCompletionMailFromDetail(); closeDetailOverflowMenu();">受付・予約メールの再送信</button>
+                    <button type="button" class="modal-overflow-menu-item modal-overflow-menu-item--danger" role="menuitem"
+                        onclick="cancelReservationFromDetail(); closeDetailOverflowMenu();">受付キャンセル</button>
+                </div>
+                <button type="button" class="modal-btn modal-btn-primary modal-action-complete"
                     onclick="completeReceptionFromDetail()">受付完了</button>
-                <button type="button" class="modal-btn modal-btn-primary"
+                <button type="button" class="modal-btn modal-btn-primary modal-action-edit"
                     onclick="editReservationFromDetail()">編集</button>
-                <button type="button" class="modal-btn modal-btn-delete"
+                <div class="modal-actions-overflow">
+                    <button type="button" class="modal-btn modal-overflow-toggle" id="detailOverflowToggle"
+                        aria-label="その他の操作" aria-expanded="false" aria-haspopup="true"
+                        aria-controls="detailOverflowMenu">⋯</button>
+                </div>
+                <button type="button" class="modal-btn modal-btn-primary modal-resend-mail-btn modal-action-pc-only"
+                    onclick="resendCompletionMailFromDetail()">受付・予約メールの再送信</button>
+                <button type="button" class="modal-btn modal-btn-delete modal-action-pc-only"
                     onclick="cancelReservationFromDetail()">受付キャンセル</button>
-                <button type="button" class="modal-btn modal-btn-cancel"
+                <button type="button" class="modal-btn modal-btn-cancel modal-action-pc-only"
                     onclick="hideReservationDetailModal()">閉じる</button>
             </div>
         </div>
@@ -2027,12 +2045,7 @@
         }
 
         // スケジュールグリッドを生成
-        function generateScheduleGrid() {
-            const grid = document.getElementById('scheduleGrid');
-            if (!grid) return;
-
-            // レイアウト未確定時は中身を消さず再試行する
-            // （幅0のまま clear すると、遷移直後や端末エミュで真っ白になる）
+        function getScheduleLayoutWidth() {
             const mainElement = document.querySelector('.main');
             const containerElement = document.querySelector('.schedule-container');
             let mainWidth = mainElement ? mainElement.offsetWidth : 0;
@@ -2042,6 +2055,29 @@
             if (mainWidth <= 0) {
                 mainWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
             }
+            return mainWidth;
+        }
+
+        function restoreScheduleScroll(savedScroll) {
+            if (!savedScroll) return;
+            const scheduleContainer = document.querySelector('.schedule-container');
+            if (!scheduleContainer) return;
+            scheduleContainer.scrollLeft = savedScroll.left;
+            scheduleContainer.scrollTop = savedScroll.top;
+        }
+
+        function generateScheduleGrid() {
+            const grid = document.getElementById('scheduleGrid');
+            if (!grid) return;
+
+            const scheduleContainer = document.querySelector('.schedule-container');
+            const savedScroll = scheduleContainer
+                ? { left: scheduleContainer.scrollLeft, top: scheduleContainer.scrollTop }
+                : null;
+
+            // レイアウト未確定時は中身を消さず再試行する
+            // （幅0のまま clear すると、遷移直後や端末エミュで真っ白になる）
+            const mainWidth = getScheduleLayoutWidth();
             if (mainWidth <= 0) {
                 const attempt = (generateScheduleGrid._retryAttempt || 0) + 1;
                 generateScheduleGrid._retryAttempt = attempt;
@@ -2066,11 +2102,14 @@
             });
 
             // スケジュールセクションの利用可能幅を計算
-            // メインのパディング(22px * 2) + スケジュールセクションのパディング(18px * 2) + ボーダー(2px)
-            const availableWidth = mainWidth - 44 - 36 - 2;
+            const isSpSchedule = typeof window.tryServIsSpContent === 'function' && window.tryServIsSpContent();
+            const mainPadding = isSpSchedule ? 24 : 44;
+            const sectionPadding = isSpSchedule ? 24 : 36;
+            const availableWidth = mainWidth - mainPadding - sectionPadding - 2;
 
             // 動的にグリッド設定を計算
-            const timeColumnWidth = 80; // 時間列の幅
+            const timeColumnWidth = isSpSchedule ? 52 : 80;
+            const minCellWidth = isSpSchedule ? 64 : 80;
             const daysCount = viewMode === '1day' ? 1 : 7; // 表示日数
 
             // チェックボックスの選択状態を取得
@@ -2091,8 +2130,8 @@
             // セル1つあたりの幅を計算（グリッドのギャップも考慮）
             const cellWidth = Math.floor(availableCellWidth / totalColumns) - 1; // 1pxはギャップ分
 
-            // 最小幅を確保（80px未満にならないように）
-            const finalCellWidth = Math.max(cellWidth, 80);
+            // 最小幅を確保
+            const finalCellWidth = Math.max(cellWidth, minCellWidth);
 
             // グリッドのクラスとスタイルを設定
             grid.className = 'schedule-grid';
@@ -2250,7 +2289,7 @@
                         `;
                             document.body.appendChild(blockPopup);
                             cell.addEventListener('mouseenter', (e) => {
-                                if (window.matchMedia('(max-width: 768px)').matches ||
+                                if (window.matchMedia('(max-width: 1023px)').matches ||
                                     (typeof window.tryServIsSpContent === 'function' && window.tryServIsSpContent())) {
                                     return;
                                 }
@@ -2358,7 +2397,7 @@
                             document.body.appendChild(popup);
 
                             reservationInfo.addEventListener('mouseenter', (e) => {
-                                if (window.matchMedia('(max-width: 768px)').matches ||
+                                if (window.matchMedia('(max-width: 1023px)').matches ||
                                     (typeof window.tryServIsSpContent === 'function' && window.tryServIsSpContent())) {
                                     return;
                                 }
@@ -2406,10 +2445,13 @@
 
             // レイアウト確定後に複数枠ラベルを枠内へ収まるよう…省略
             requestAnimationFrame(function () {
+                restoreScheduleScroll(savedScroll);
                 document.querySelectorAll('.schedule-cell .reservation-slot-content.is-span-fill').forEach(function (el) {
                     truncateScheduleLabelToFit(el);
                 });
             });
+
+            restoreScheduleScroll(savedScroll);
 
             // 一覧「選択」からの強調を再適用（再描画で消えないように）
             if (window.pendingListHighlightId) {
@@ -3342,25 +3384,35 @@
             }
         }
 
+        function renderWebReceptionButton() {
+            const button = document.getElementById('webReceptionToggleBtn');
+            if (!button) return;
+            if (isOnlineReceptionActive) {
+                button.className = 'btn warn-btn schedule-web-reception-btn';
+                button.innerHTML =
+                    '<i class="material-icons schedule-web-reception-icon" aria-hidden="true">block</i>' +
+                    '<span class="schedule-web-reception-label">WEB受付停止</span>';
+                button.setAttribute('aria-label', 'WEB受付停止');
+            } else {
+                button.className = 'btn normal-btn schedule-web-reception-btn';
+                button.innerHTML =
+                    '<i class="material-icons schedule-web-reception-icon" aria-hidden="true">play_arrow</i>' +
+                    '<span class="schedule-web-reception-label">WEB再開</span>';
+                button.setAttribute('aria-label', 'WEB受付再開');
+            }
+        }
+
         // WEB受付を停止する関数
         function stopOnlineReception() {
             isOnlineReceptionActive = false;
-            const button = document.querySelector('.btn.warn-btn, .btn.link-btn');
-            if (button) {
-                button.className = 'btn ';
-                button.textContent = 'WEB受付再開';
-            }
+            renderWebReceptionButton();
             // ここで実際のWEB受付停止処理を実行
         }
 
         // WEB受付を再開する関数
         function startOnlineReception() {
             isOnlineReceptionActive = true;
-            const button = document.querySelector('.btn.warn-btn, .btn.link-btn');
-            if (button) {
-                button.className = 'btn warn-btn';
-                button.textContent = 'WEB受付停止';
-            }
+            renderWebReceptionButton();
             // ここで実際のWEB受付再開処理を実行
         }
 
@@ -3402,6 +3454,8 @@
 
             var modal = document.getElementById('reservationDetailModal');
             if (!modal) return;
+
+            closeDetailOverflowMenu();
 
             var title = modal.querySelector('.modal-title');
             if (title) title.textContent = '📝 受付・予約詳細（ID：' + id + '）';
@@ -3451,8 +3505,44 @@
         }
 
         function hideReservationDetailModal() {
+            closeDetailOverflowMenu();
             document.getElementById('reservationDetailModal').style.display = 'none';
             // currentDetailDataは編集モーダルが閉じられるまで保持する
+        }
+
+        function closeDetailOverflowMenu() {
+            var menu = document.getElementById('detailOverflowMenu');
+            var toggle = document.getElementById('detailOverflowToggle');
+            if (menu) menu.hidden = true;
+            if (toggle) toggle.setAttribute('aria-expanded', 'false');
+        }
+
+        function initDetailOverflowMenu() {
+            var toggle = document.getElementById('detailOverflowToggle');
+            var menu = document.getElementById('detailOverflowMenu');
+            if (!toggle || !menu || toggle.dataset.bound === '1') return;
+            toggle.dataset.bound = '1';
+
+            toggle.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var open = menu.hidden;
+                menu.hidden = !open;
+                toggle.setAttribute('aria-expanded', String(open));
+            });
+
+            menu.addEventListener('click', function (e) {
+                e.stopPropagation();
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!menu.hidden && !e.target.closest('#detailOverflowMenu') && !e.target.closest('#detailOverflowToggle')) {
+                    closeDetailOverflowMenu();
+                }
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && !menu.hidden) closeDetailOverflowMenu();
+            });
         }
 
         function completeReceptionFromDetail() {
@@ -3767,7 +3857,7 @@
 
         // キャンセル理由ポップアップ機能
         function showCancelReasonPopup(event, cancelReason) {
-            if (window.matchMedia('(max-width: 768px)').matches ||
+            if (window.matchMedia('(max-width: 1023px)').matches ||
                 (typeof window.tryServIsSpContent === 'function' && window.tryServIsSpContent())) {
                 return;
             }
@@ -3811,6 +3901,7 @@
         // Material Design Components初期化
         document.addEventListener('DOMContentLoaded', function () {
             mockInitGuestCountUi();
+            initDetailOverflowMenu();
             // MDCコンポーネントを初期化
             mdc.autoInit();
             // 日付コントロール
@@ -3870,12 +3961,28 @@
             updateDateInput();
             generateScheduleGrid();
 
+            let lastScheduleLayoutWidth = getScheduleLayoutWidth();
+            let scheduleResizeTimer = null;
+            let lastSpScheduleMode = typeof window.tryServIsSpContent === 'function'
+                ? window.tryServIsSpContent() : null;
+
+            window.tryServOnSpLayoutChange = function (isSp) {
+                if (lastSpScheduleMode === isSp) return;
+                lastSpScheduleMode = isSp;
+                lastScheduleLayoutWidth = 0;
+                generateScheduleGrid();
+            };
+
             // 端末エミュ／画面遷移直後はレイアウト確定が遅れることがあるため再描画
             window.addEventListener('load', function () {
+                lastScheduleLayoutWidth = getScheduleLayoutWidth();
                 generateScheduleGrid();
             });
             window.addEventListener('pageshow', function (e) {
-                if (e.persisted) generateScheduleGrid();
+                if (e.persisted) {
+                    lastScheduleLayoutWidth = getScheduleLayoutWidth();
+                    generateScheduleGrid();
+                }
             });
 
             // URLパラメータをチェックして受付詳細を表示（少し遅延させて実行）
@@ -3883,9 +3990,16 @@
                 checkUrlParameters();
             }, 100);
 
-            // ウィンドウリサイズイベント
+            // 幅が変わったときだけ再描画（キーボード表示など高さのみの resize は無視）
             window.addEventListener('resize', () => {
-                generateScheduleGrid();
+                clearTimeout(scheduleResizeTimer);
+                scheduleResizeTimer = setTimeout(() => {
+                    const w = getScheduleLayoutWidth();
+                    if (w <= 0) return;
+                    if (lastScheduleLayoutWidth > 0 && Math.abs(w - lastScheduleLayoutWidth) < 2) return;
+                    lastScheduleLayoutWidth = w;
+                    generateScheduleGrid();
+                }, 200);
             });
         });
 
@@ -3974,7 +4088,7 @@
         // 受付詳細ポップアップ表示
         function showReservationPopup(event, popup) {
             // SP幅ではホバーポップアップを出さない（タップ→詳細モーダルは維持）
-            if (window.matchMedia('(max-width: 768px)').matches ||
+            if (window.matchMedia('(max-width: 1023px)').matches ||
                 (typeof window.tryServIsSpContent === 'function' && window.tryServIsSpContent())) {
                 return;
             }
@@ -4503,7 +4617,7 @@
                 closeReservationListPopup();
             }
 
-            var isSp = window.innerWidth <= 1024;
+            var isSp = window.innerWidth < 1024;
             var tomorrowDate = new Date();
             tomorrowDate.setHours(0, 0, 0, 0);
             tomorrowDate.setDate(tomorrowDate.getDate() + 1);
@@ -4615,7 +4729,7 @@
             cancelRows.forEach(row => {
                 // マウスオーバー時
                 row.addEventListener('mouseenter', function(event) {
-                    if (window.matchMedia('(max-width: 768px)').matches ||
+                    if (window.matchMedia('(max-width: 1023px)').matches ||
                         (typeof window.tryServIsSpContent === 'function' && window.tryServIsSpContent())) {
                         return;
                     }
@@ -4631,7 +4745,7 @@
 
                 // マウス移動時（ポップアップの位置を更新）
                 row.addEventListener('mousemove', function(event) {
-                    if (window.matchMedia('(max-width: 768px)').matches ||
+                    if (window.matchMedia('(max-width: 1023px)').matches ||
                         (typeof window.tryServIsSpContent === 'function' && window.tryServIsSpContent())) {
                         return;
                     }

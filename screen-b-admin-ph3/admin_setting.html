@@ -641,6 +641,118 @@
       display: none;
     }
 
+    /* 営業時間の表示形式（ラジオ切替＋プレビュー1件表示） */
+    .hours-display-format-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+      width: 100%;
+    }
+    .hours-display-format-radios {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 20px;
+    }
+    .hours-display-format-radios label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+    .hours-display-format-radios input[type="radio"] {
+      margin: 0;
+      flex-shrink: 0;
+    }
+    .hours-display-format-radios span {
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+      white-space: nowrap;
+    }
+    .hours-display-format-preview-area {
+      width: auto;
+      max-width: 100%;
+      min-width: 0;
+    }
+    .hours-display-format-preview {
+      display: none;
+      width: auto;
+      max-width: 100%;
+      min-width: 0;
+    }
+    .hours-display-format-preview.is-active {
+      display: block;
+    }
+    /* TypeA: C画面 index.html .hours-table と同じ */
+    .hours-display-format-preview .hours-table {
+      border-collapse: collapse;
+      font-family: "-apple-system", BlinkMacSystemFont, "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic Medium", YuGothic, Meiryo, sans-serif;
+      font-size: 14px;
+      line-height: 1.4;
+      margin: 0;
+      width: auto;
+      background: #fff;
+      pointer-events: none;
+    }
+    .hours-display-format-preview .hours-table th,
+    .hours-display-format-preview .hours-table td {
+      border: 1px solid #dee2e6;
+      padding: 8px 12px;
+      text-align: center;
+    }
+    .hours-display-format-preview .hours-table thead th {
+      background-color: #e9ecef;
+      font-weight: bold;
+      color: #495057;
+    }
+    .hours-display-format-preview .hours-table tbody td:first-child {
+      background-color: #f8f9fa;
+      font-weight: bold;
+      text-align: left;
+    }
+    .hours-display-format-preview .hours-table tbody td {
+      color: #495057;
+    }
+    .hours-display-format-preview .hours-table tbody tr:nth-child(even) {
+      background-color: #f8f9fa;
+    }
+    .hours-display-format-preview .hours-table tbody tr:nth-child(odd) {
+      background-color: #ffffff;
+    }
+    .hours-display-format-preview .hours-table th:nth-child(7),
+    .hours-display-format-preview .hours-table td:nth-child(7) {
+      color: #2d79df;
+    }
+    .hours-display-format-preview .hours-table th:nth-child(8),
+    .hours-display-format-preview .hours-table td:nth-child(8) {
+      color: #ff8c1b;
+    }
+    .hours-display-format-preview .hours-table th:nth-child(9),
+    .hours-display-format-preview .hours-table td:nth-child(9) {
+      color: #ff8c1b;
+    }
+    /* TypeB: C画面 index.html .hours-table.hours-table-by-day と同じ */
+    .hours-display-format-preview .hours-table.hours-table-by-day tbody tr:nth-child(even),
+    .hours-display-format-preview .hours-table.hours-table-by-day tbody tr:nth-child(odd),
+    .hours-display-format-preview .hours-table.hours-table-by-day tbody td:first-child {
+      background-color: transparent;
+    }
+    .hours-display-format-preview .hours-table.hours-table-by-day tbody td:not(:first-child) {
+      text-align: center;
+      font-weight: normal;
+    }
+    @media screen and (max-width: 767px) {
+      .hours-display-format-preview .hours-table {
+        font-size: 12px;
+      }
+      .hours-display-format-preview .hours-table th,
+      .hours-display-format-preview .hours-table td {
+        padding: 6px 8px;
+      }
+    }
+
     /* 接続元IP設定 */
     .source-ip-current-row {
       display: flex;
@@ -1100,6 +1212,91 @@
                             </div>
 
                             <div class="search-form-grid-setting settings-group hidden" id="policySettingsGroup">
+                                <div class="search-form-row">
+                                    <div class="search-form-label">営業時間の表示形式<span class="required">*</span></div>
+                                    <div class="search-form-input radio-group">
+                                        <div class="hours-display-format-wrap">
+                                            <div class="hours-display-format-radios">
+                                                <label>
+                                                    <input type="radio" id="radHoursDisplayMatrix" name="radHoursDisplayFormat" value="matrix" checked>
+                                                    <span>TypeA</span>
+                                                </label>
+                                                <label>
+                                                    <input type="radio" id="radHoursDisplayByDay" name="radHoursDisplayFormat" value="by_day">
+                                                    <span>TypeB</span>
+                                                </label>
+                                            </div>
+                                            <div class="hours-display-format-preview-area">
+                                                <div class="hours-display-format-preview is-active" id="hoursPreviewMatrix" data-format="matrix">
+                                                    <table class="hours-table">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>営業時間</th>
+                                                                <th>月</th>
+                                                                <th>火</th>
+                                                                <th>水</th>
+                                                                <th>木</th>
+                                                                <th>金</th>
+                                                                <th>土</th>
+                                                                <th>日</th>
+                                                                <th>祝</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <tr>
+                                                                <td>10:00～14:00</td>
+                                                                <td>●</td>
+                                                                <td>×</td>
+                                                                <td>●</td>
+                                                                <td>●</td>
+                                                                <td>●</td>
+                                                                <td>×</td>
+                                                                <td>●</td>
+                                                                <td>●</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>15:00～18:00</td>
+                                                                <td>×</td>
+                                                                <td>×</td>
+                                                                <td>●</td>
+                                                                <td>●</td>
+                                                                <td>●</td>
+                                                                <td>×</td>
+                                                                <td>●</td>
+                                                                <td>●</td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <div class="hours-display-format-preview" id="hoursPreviewByDay" data-format="by_day">
+                                                    <table class="hours-table hours-table-by-day">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>曜日・祝日</th>
+                                                                <th>営業時間</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <tr>
+                                                                <td>月</td>
+                                                                <td>10:00 - 14:00</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>火・土</td>
+                                                                <td>定休日</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>水・木・金・日・祝</td>
+                                                                <td>10:00 - 14:00 / 15:00 - 18:00</td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="search-form-row">
                                     <div class="search-form-label">受付・予約枠の表示ピッチ<span class="required">*</span></div>
                                     <div class="search-form-input radio-group">
@@ -2675,6 +2872,25 @@ b. 申込書面をご提出いただく際に同封いただくもの
         }
     }
 
+    function initHoursDisplayFormatToggle() {
+        const radios = document.querySelectorAll('input[name="radHoursDisplayFormat"]');
+        const previews = document.querySelectorAll('.hours-display-format-preview-area .hours-display-format-preview');
+        if (!radios.length || !previews.length) return;
+
+        function updateHoursDisplayFormatPreview() {
+            const selected = document.querySelector('input[name="radHoursDisplayFormat"]:checked');
+            if (!selected) return;
+            previews.forEach((preview) => {
+                preview.classList.toggle('is-active', preview.dataset.format === selected.value);
+            });
+        }
+
+        radios.forEach((radio) => {
+            radio.addEventListener('change', updateHoursDisplayFormatPreview);
+        });
+        updateHoursDisplayFormatPreview();
+    }
+
     function initCancelDeadlineChart() {
         const netInput = document.getElementById('txtNetCancelDeadline');
         const phoneInput = document.getElementById('txtPhoneCancelDeadline');
@@ -2754,6 +2970,7 @@ b. 申込書面をご提出いただく際に同封いただくもの
 
         initMailAttachments();
         initCancelDeadlineChart();
+        initHoursDisplayFormatToggle();
     });
   </script>
 </body>

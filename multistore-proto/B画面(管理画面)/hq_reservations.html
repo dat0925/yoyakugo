@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <script src="../pin_gate.js"></script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>横断予約一覧｜本部コンソール（多店舗管理プロトタイプ）</title>
+    <link href="./style.css" rel="stylesheet">
+    <link href="./sp.css" rel="stylesheet">
+    <link href="./hq.css" rel="stylesheet">
+</head>
+<body>
+<div class="app">
+    <aside id="hqSide"></aside>
+    <header id="hqTop"></header>
+    <main class="main">
+        <div class="hq-head">
+            <div>
+                <h2>📅 横断予約一覧</h2>
+                <div class="sub">全店の予約を1つの表で見られます。電話で「別の院なら空いてますか？」と聞かれたときも、この画面で答えられます。</div>
+            </div>
+            <button class="regist-btn" onclick="HQ_toast('CSV（Shift_JIS）をダウンロードしました（プロトタイプのため実ファイルは出ません）')">⬇ CSV出力</button>
+        </div>
+        <div class="card">
+            <div class="hq-filters">
+                <label>店舗 <select id="fStore"><option value="">全店</option></select></label>
+                <label>期間 <input type="date" value="2026-09-23"> 〜 <input type="date" value="2026-09-23"></label>
+                <label>ステータス <select id="fStatus"><option value="">すべて</option><option>受付待ち</option><option>受付完了</option><option>キャンセル</option></select></label>
+                <label>経路 <select id="fRoute"><option value="">すべて</option><option>WEB</option><option>電話</option><option>管理画面</option></select></label>
+                <span class="muted" id="cnt" style="margin-left:auto"></span>
+            </div>
+        </div>
+        <div class="hq-table-wrap">
+            <table class="hq-table" id="tbl">
+                <thead><tr><th>日時</th><th>店舗</th><th>お客様</th><th>メニュー</th><th>担当</th><th>経路</th><th>ステータス</th><th>操作</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="hq-next">💡 経路（WEB／電話／管理画面）の列は、現在の予約詳細に無い項目です。多店舗化とあわせて記録するよう開発部へ提案します（WEB予約比率の集計にも使います）。</div>
+    </main>
+</div>
+<script src="./js/hq_data.js"></script>
+<script src="./js/hq_shell.js"></script>
+<script>
+(function () {
+    HQ.stores.forEach(s => fStore.insertAdjacentHTML('beforeend', '<option value="' + s.name + '">' + s.area + '｜' + s.name + '</option>'));
+    const q = new URLSearchParams(location.search).get('store');
+    if (q && HQ.store(q)) fStore.value = HQ.store(q).name;
+    const badge = st => st === '受付完了' ? 'ok' : st === 'キャンセル' ? 'ng' : 'wait';
+    function render() {
+        const rows = HQ.reservations.filter(r => (!fStore.value || r[1] === fStore.value) && (!fStatus.value || r[6] === fStatus.value) && (!fRoute.value || r[5] === fRoute.value));
+        cnt.textContent = rows.length + ' 件';
+        tbl.querySelector('tbody').innerHTML = rows.map(r => {
+            const s = HQ.stores.find(x => x.name === r[1]);
+            return '<tr><td style="white-space:nowrap">' + r[0] + '</td><td><b>' + r[1] + '</b></td><td>' + r[2] + '</td><td>' + r[3] + '</td><td>' + r[4] + '</td>' +
+                '<td><span class="hq-badge ' + (r[5] === 'WEB' ? 'blue' : 'gray') + '">' + r[5] + '</span></td>' +
+                '<td><span class="hq-badge ' + badge(r[6]) + '">' + r[6] + '</span></td>' +
+                '<td><a class="link-btn" href="#" onclick="HQ_goStore(\'' + s.id + '\',\'admin_reservations.html\');return false;">店舗で開く</a></td></tr>';
+        }).join('');
+    }
+    [fStore, fStatus, fRoute].forEach(e => e.addEventListener('change', render));
+    render();
+})();
+</script>
+</body>
+</html>

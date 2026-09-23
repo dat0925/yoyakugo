@@ -1,0 +1,12 @@
+{
+    "name":"projects/project-ab359153-73f6-48d2-8fb/locations/us-central1/glossaries/GlossaryTest",
+    "languagePair": {
+        "sourceLanguageCode": "ja",
+        "targetLanguageCode": "en"
+    },
+    "inputConfig": {
+        "gcsSource": {
+            "inputUri": "gs://test-for-glossary/glossary.tmx"
+        }
+  }
+}

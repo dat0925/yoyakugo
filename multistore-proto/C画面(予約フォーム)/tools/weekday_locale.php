@@ -1,0 +1,145 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * 曜日・祝日の現地自然表記（営業時間テーブルは月〜日順、messages.weekdays は日〜土順）。
+ *
+ * @return array<string, array{
+ *   hours: string[],
+ *   holiday: string,
+ *   cal: string[],
+ *   date_confirm: string,
+ *   msg_weekdays: string[],
+ *   msg_holiday: string
+ * }>
+ */
+return [
+    'ja' => [
+        'hours' => ['月', '火', '水', '木', '金', '土', '日'],
+        'holiday' => '祝',
+        'cal' => ['月', '火', '水', '木', '金', '土', '日'],
+        'date_confirm' => '12月1日（月）10:30',
+        'msg_weekdays' => ['日', '月', '火', '水', '木', '金', '土'],
+        'msg_holiday' => '祝',
+    ],
+    'en' => [
+        'hours' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        'holiday' => 'Hol',
+        'cal' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        'date_confirm' => 'December 1 (Mon) 10:30',
+        'msg_weekdays' => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        'msg_holiday' => 'Hol',
+    ],
+    'ko' => [
+        'hours' => ['월', '화', '수', '목', '금', '토', '일'],
+        'holiday' => '휴',
+        'cal' => ['월', '화', '수', '목', '금', '토', '일'],
+        'date_confirm' => '12월 1일 (월) 10:30',
+        'msg_weekdays' => ['일', '월', '화', '수', '목', '금', '토'],
+        'msg_holiday' => '휴',
+    ],
+    'zh-cn' => [
+        'hours' => ['一', '二', '三', '四', '五', '六', '日'],
+        'holiday' => '假',
+        'cal' => ['一', '二', '三', '四', '五', '六', '日'],
+        'date_confirm' => '12月1日（一）10:30',
+        'msg_weekdays' => ['日', '一', '二', '三', '四', '五', '六'],
+        'msg_holiday' => '假',
+    ],
+    'zh-tw' => [
+        'hours' => ['一', '二', '三', '四', '五', '六', '日'],
+        'holiday' => '假',
+        'cal' => ['一', '二', '三', '四', '五', '六', '日'],
+        'date_confirm' => '12月1日（一）10:30',
+        'msg_weekdays' => ['日', '一', '二', '三', '四', '五', '六'],
+        'msg_holiday' => '假',
+    ],
+    'th' => [
+        'hours' => ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.', 'อา.'],
+        'holiday' => 'หยุด',
+        'cal' => ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.', 'อา.'],
+        'date_confirm' => '1 ธันวาคม 2025 (จ.) 10:30',
+        'msg_weekdays' => ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'],
+        'msg_holiday' => 'หยุด',
+    ],
+    'tl' => [
+        'hours' => ['Lun', 'Mar', 'Miy', 'Huw', 'Biy', 'Sab', 'Lin'],
+        'holiday' => 'Hol',
+        'cal' => ['Lun', 'Mar', 'Miy', 'Huw', 'Biy', 'Sab', 'Lin'],
+        'date_confirm' => 'Disyembre 1 (Lun) 10:30',
+        'msg_weekdays' => ['Lin', 'Lun', 'Mar', 'Miy', 'Huw', 'Biy', 'Sab'],
+        'msg_holiday' => 'Hol',
+    ],
+    'vi' => [
+        'hours' => ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
+        'holiday' => 'Lễ',
+        'cal' => ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
+        'date_confirm' => '1 tháng 12 (Th 2) 10:30',
+        'msg_weekdays' => ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'],
+        'msg_holiday' => 'Lễ',
+    ],
+    'id' => [
+        'hours' => ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
+        'holiday' => 'Lib',
+        'cal' => ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
+        'date_confirm' => '1 Desember 2025 (Sen) 10:30',
+        'msg_weekdays' => ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
+        'msg_holiday' => 'Lib',
+    ],
+    'ms' => [
+        'hours' => ['Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab', 'Ahd'],
+        'holiday' => 'Cuti',
+        'cal' => ['Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab', 'Ahd'],
+        'date_confirm' => '1 Disember 2025 (Isn) 10:30',
+        'msg_weekdays' => ['Ahd', 'Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab'],
+        'msg_holiday' => 'Cuti',
+    ],
+    'fr' => [
+        'hours' => ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'],
+        'holiday' => 'férié',
+        'cal' => ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'],
+        'date_confirm' => '1 décembre 2025 (lun.) 10:30',
+        'msg_weekdays' => ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'],
+        'msg_holiday' => 'férié',
+    ],
+    'de' => [
+        'hours' => ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
+        'holiday' => 'Fei',
+        'cal' => ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
+        'date_confirm' => '1. Dezember 2025 (Mo) 10:30',
+        'msg_weekdays' => ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'],
+        'msg_holiday' => 'Fei',
+    ],
+    'hi' => [
+        'hours' => ['सो.', 'मं.', 'बु.', 'गु.', 'शु.', 'श.', 'र.'],
+        'holiday' => 'छु.',
+        'cal' => ['सो.', 'मं.', 'बु.', 'गु.', 'शु.', 'श.', 'र.'],
+        'date_confirm' => '1 दिसंबर 2025 (सो.) 10:30',
+        'msg_weekdays' => ['र.', 'सो.', 'मं.', 'बु.', 'गु.', 'शु.', 'श.'],
+        'msg_holiday' => 'छु.',
+    ],
+    'ru' => [
+        'hours' => ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'],
+        'holiday' => 'празд.',
+        'cal' => ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'],
+        'date_confirm' => '1 декабря 2025 (пн) 10:30',
+        'msg_weekdays' => ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'],
+        'msg_holiday' => 'празд.',
+    ],
+    'ar' => [
+        'hours' => ['اث', 'ثل', 'أر', 'خم', 'جم', 'سب', 'أح'],
+        'holiday' => 'عطلة',
+        'cal' => ['اث', 'ثل', 'أر', 'خم', 'جم', 'سب', 'أح'],
+        'date_confirm' => '1 ديسمبر 2025 (اث) 10:30',
+        'msg_weekdays' => ['أح', 'اث', 'ثل', 'أر', 'خم', 'جم', 'سب'],
+        'msg_holiday' => 'عطلة',
+    ],
+    'pt' => [
+        'hours' => ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'],
+        'holiday' => 'fer.',
+        'cal' => ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'],
+        'date_confirm' => '1 de dezembro de 2025 (seg) 10:30',
+        'msg_weekdays' => ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'],
+        'msg_holiday' => 'fer.',
+    ],
+];

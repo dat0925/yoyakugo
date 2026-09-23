@@ -1,0 +1,164 @@
+<!doctype html>
+<html class="no-js" lang="ko">
+  <head>
+  <script src="../pin_gate.js"></script>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="canonical" href="http://www./">
+    <title></title>
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta property="og:url" content="http://www./">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="">
+    <meta property="og:title" content="">
+    <meta property="og:site_name" content="">
+    <meta property="og:description" content="">
+    <link href="./assets/css/main.css" rel="stylesheet">
+    <script src="./assets/js/vendor/jquery.min.js"></script>
+  </head>
+  <body>
+    <header>
+      <div class="primary_header">
+        <div class="container">
+          <div class="row">
+            <h1 class="title"> ●●접골원 </h1>
+            <div class="flow">
+              <ul>
+                <li>상세정보</li>
+                <li class="active">확인</li>
+                <li>완료</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main>
+      <form action="./complete_ko.html" method="post">
+        <section class="confirm01">
+          <div class="container gutters">
+            <div class="text-center text-xlarge">예약/내원이 아직 완료되지 않았습니다.</div>
+            <div class="text-center text-large">입력 내용을 확인하시고, 올바르면「예약 완료」버튼을 클릭해 주세요.</div>
+            <div class="box">
+              <ul>
+                <li>
+                  <label>
+                    <span class="title_txt">
+                      <span>예약/내원 정보</span>
+                    </span>
+                    <div class="table-container">
+                      <div class="row">
+                        <div class="cell cell-1 text-right">인원</div>
+                        <div class="cell cell-2">1명</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">메뉴</div>
+                        <div class="cell cell-2">
+                          <div class="confirm_menu_name">메뉴명</div>
+                          <ul class="confirm_option_list">
+                            <li>+옵션 메뉴명 옵션 메뉴명</li>
+                            <li>+옵션 메뉴명 옵션 메뉴명</li>
+                          </ul>
+                        </div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">날짜·시간</div>
+                        <div class="cell cell-2">12월 1일 (월) 10:30</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">담당자</div>
+                        <div class="cell cell-2">店舗花子</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">요금(세금 포함)</div>
+                        <div class="cell cell-2">3,000 JPY</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">소요시간</div>
+                        <div class="cell cell-2">45분</div>
+                      </div>
+                    </div>
+                  </label>
+                </li>
+                <li>
+                  <label>
+                    <span class="title_txt">
+                      <span>예약 정보</span>
+                    </span>
+                    <div class="table-container">
+                      <div class="row">
+                        <div class="cell cell-1 text-right">이름</div>
+                        <div class="cell cell-2">Yamada Taro</div>
+                      </div>
+                      <div class="row" id="furigana_row">
+                        <div class="cell cell-1 text-right">이름（가나）</div>
+                        <div class="cell cell-2"></div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">전화번호</div>
+                        <div class="cell cell-2">03-0000-1111</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">이메일 주소</div>
+                        <div class="cell cell-2">test@iflag.co.jp</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">코멘트</div>
+                        <div class="cell cell-2">I would like a female practitioner.</div>
+                      </div>
+                    </div>
+                  </label>
+                </li>
+                <li>
+                  <label>
+                    <span class="title_txt">
+                      <span>이메일 인증</span>
+                    </span>
+                    <div class="table-container">
+                      <div class="row">
+                        <div class="cell cell-1 text-right">인증 코드</div>
+                        <div class="cell cell-2">
+                          <div class="pin_input_wrapper">
+                            <input type="text" class="input_pin" id="pinCode" placeholder="" maxlength="6" pattern="\d{6}">
+                            <div class="pin_progress" id="pinTimer">
+                              <div class="progress_header">
+                                <div class="progress_label">유효 기한</div>
+                                <div class="progress_text" id="progressText">01:00</div>
+                              </div>
+                              <div class="progress_bar">
+                                <div class="progress_fill" id="progressFill"></div>
+                              </div>
+                              <div class="resend_link" id="resendLink" style="display: none;">
+                                <a href="./index_ko.html">인증 코드 재전송</a>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="pin_code_notice">
+                            <p>test@iflag.co.jp로 인증 이메일을 발송했습니다.</p>
+                            <p>이메일에 적힌 인증 코드를 입력해 주세요.</p>
+                            <p class="attention_point">이메일이 오지 않으면 스팸 폴더를 확인하시거나<br/>입력한 이메일 주소를 확인한 뒤 다시 제출해 주세요.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                </li>
+              </ul>
+              <div class="input_wrap">
+                <div class="back_wrap"><a href="./index_ko.html">예약 내용 변경</a></div>
+                <p class="submit_wrap">
+                  <input type="submit" value="예약 완료">
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </form>
+      <div class="foot">© 2025 IFLAG Co, Ltd.</div>
+    </main>
+
+    <script src="./assets/js/main.js"></script>
+  </body>
+</html>

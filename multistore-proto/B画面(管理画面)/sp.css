@@ -1,0 +1,2359 @@
+/* ==========================================================================
+   予約GO 管理画面 / スマートフォン・タブレット対応レイヤー
+   --------------------------------------------------------------------------
+   ・style.css の「後」に読み込む追加ファイルです。
+   ・既存の style.css / 各HTML のマークアップは変更していません。
+     （PC表示への影響を出さないため、変更はすべてメディアクエリの中に閉じています）
+   ・ブレークポイントは 1 つです。
+       1024px 未満 … SP表示（レイアウト・ナビ・一覧カード化・フォーム・モーダル）
+   ========================================================================== */
+
+:root {
+  --sp-appbar-h: 56px;          /* 上部バーの高さ */
+  --sp-bottomnav-h: 64px;       /* 下部タブの高さ（アイコン＋ラベル） */
+  --sp-bottomnav-gap: 24px;     /* 本文と下部タブのすき間 */
+  --sp-tap: 44px;               /* タップ領域の最小サイズ */
+  --sp-drawer-w: 276px;         /* 引き出しメニューの幅 */
+  --sp-safe-t: env(safe-area-inset-top, 0px);
+  --sp-safe-b: env(safe-area-inset-bottom, 0px);
+  --sp-z-appbar: 1100;
+  --sp-z-drawer: 1300;
+  --sp-z-scrim: 1200;
+  --sp-z-modal: 1400;           /* 下部タブより前面（操作ボタンが隠れないように） */
+  --sp-bottomnav-clearance: calc(var(--sp-bottomnav-h) + var(--sp-safe-b) + var(--sp-bottomnav-gap));
+}
+
+/* ==========================================================================
+   1. 追加パーツの初期状態（PC幅では非表示）
+   ========================================================================== */
+
+.sp-appbar,
+.sp-scrim,
+.sp-bottomnav,
+.sp-drawer-head,
+.sp-drawer-account { display: none; }
+
+
+/* ==========================================================================
+   2. 1024px 未満：SP向けレイアウト・ナビゲーション・コンテンツ
+   ========================================================================== */
+@media (max-width: 1023px) {
+
+  /* --- 2-1. スクロールの土台をブラウザ本体に戻す -----------------------
+     既存は .main が max-height:100vh / overflow-y:auto の内側スクロールでした。
+     スマホでは「アドレスバーが隠れない」「二重スクロールになる」ため、
+     ページ全体（body）でスクロールする形に戻します。                     */
+  html, body {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+  }
+
+  /* --- 2-2. 【最重要】本文が画面幅からはみ出す不具合の修正 -------------
+     既存: .main { width: calc(100vw - 220px) }
+     → 幅390pxのスマホでは本文が 170px しかなくなり、画面の左半分に
+       押し込まれた状態になっていました（今回いただいたキャプチャの状態）。 */
+  .app {
+    display: block;
+    min-height: 100%;
+    /* 固定上部バー分の余白（fixed はフロー外のため） */
+    padding-top: calc(var(--sp-appbar-h) + var(--sp-safe-t));
+    /* 固定下部タブに隠れないよう、ページ末尾に余白を確保 */
+    padding-bottom: var(--sp-bottomnav-clearance);
+    box-sizing: border-box;
+    /* style.css の overflow-x:hidden だと .app がスクロール容器になり sticky が効かない */
+    overflow: visible;
+  }
+
+  .main {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    max-height: none;
+    min-height: 0;
+    height: auto;
+    overflow: visible;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  /* topbar がある画面用の高さ指定も解除 */
+  .topbar ~ .main {
+    height: auto;
+    min-height: 0;
+  }
+
+  /* --- 2-2b. 受付・予約：タブレット幅でも表が消えないようにする ---------
+     PC向け .schedule-section { height: 100vh; overflow: hidden } のままだと、
+     SP幅で .main が height:auto になったあと、ヘッダーが折り返して
+     縦に伸びた分だけ表エリア（flex:1）が 0px になり真っ白に見える。 */
+  .schedule-section {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0;
+    overflow: visible;
+  }
+  .calendar-container {
+    flex: none;
+    min-height: 0;
+    padding: 8px 12px 12px;
+  }
+  .schedule-container {
+    flex: none;
+    height: min(62dvh, 640px);
+    min-height: 280px;
+  }
+
+  /* --- 2-2c. 受付・予約：二重スクロール防止 -----------------------------
+     .main の下端を下部タブ上端に合わせ、ページ本体の縦スクロールを止める。
+     縦スクロールは .schedule-container のみにする。 */
+  html:has(main.main .schedule-section),
+  body:has(main.main .schedule-section) {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body:has(main.main .schedule-section) .app {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    max-height: 100dvh;
+    min-height: 0;
+    /* 固定下部タブのぶんだけ空け、.main 下端＝タブ上端にする */
+    padding-bottom: calc(var(--sp-bottomnav-h) + var(--sp-safe-b));
+    overflow: hidden;
+  }
+
+  body:has(main.main .schedule-section) .sp-appbar {
+    flex: 0 0 auto;
+  }
+
+  body:has(main.main .schedule-section) .topbar {
+    display: none !important;
+  }
+
+  body:has(main.main .schedule-section) .main,
+  body:has(main.main .schedule-section) .topbar ~ .main {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  body:has(main.main .schedule-section) .schedule-section {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto !important;
+    max-height: none !important;
+    margin-bottom: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  body:has(main.main .schedule-section) .calendar-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  body:has(main.main .schedule-section) .schedule-container {
+    flex: 1 1 auto;
+    height: auto;
+    /* 0 に潰れると表が消えて真っ白に見えるため下限を残す */
+    min-height: 200px;
+    max-height: none;
+  }
+
+  /* 1024px 未満は 1 日表示のみ（切替ボタンは非表示） */
+  .schedule-controls .view-toggle { display: none; }
+  #view1Week { display: none !important; }
+
+  /* --- 2-3. 上部バー（ハンバーガー） -----------------------------------
+     ビューポート最上部に固定。親 .app の overflow 影響を受けないよう fixed を使う。 */
+  .sp-appbar {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: var(--sp-z-appbar);
+    align-items: center;
+    gap: 4px;
+    height: calc(var(--sp-appbar-h) + var(--sp-safe-t));
+    padding: var(--sp-safe-t) 8px 0;
+    background: #0b1f3a;
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .18);
+  }
+
+  .sp-appbar-btn {
+    flex: 0 0 auto;
+    width: var(--sp-tap);
+    height: var(--sp-tap);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sp-appbar-btn:active { background: rgba(255, 255, 255, .14); }
+  .sp-appbar-btn svg { width: 22px; height: 22px; }
+
+  a.sp-appbar-btn.sp-appbar-back {
+    text-decoration: none;
+    color: #fff;
+  }
+  .sp-appbar-back-icon {
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  /* ハンバーガーアイコン（3本線 → ×） */
+  .sp-burger-icon {
+    position: relative;
+    width: 20px;
+    height: 14px;
+  }
+  .sp-burger-icon span {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    transition: transform .22s ease, opacity .18s ease;
+  }
+  .sp-burger-icon span:nth-child(1) { top: 0; }
+  .sp-burger-icon span:nth-child(2) { top: 6px; }
+  .sp-burger-icon span:nth-child(3) { top: 12px; }
+
+  body.sp-nav-open .sp-burger-icon span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  body.sp-nav-open .sp-burger-icon span:nth-child(2) { opacity: 0; }
+  body.sp-nav-open .sp-burger-icon span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+  .sp-appbar-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.2;
+    padding: 0 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* --- 2-4. サイドメニューを引き出し（オフキャンバス）に ---------------
+     既存は 760px 以下で display:none にしていたため、スマホでは
+     メニューに一切たどり着けない状態でした。                            */
+  .sidebar {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--sp-drawer-w);
+    max-width: 84vw;
+    z-index: var(--sp-z-drawer);
+    padding: calc(12px + var(--sp-safe-t)) 12px calc(12px + var(--sp-safe-b));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    transform: translateX(-100%);
+    transition: transform .24s cubic-bezier(.4, 0, .2, 1);
+    will-change: transform;
+  }
+  body.sp-nav-open .sidebar {
+    transform: translateX(0);
+    box-shadow: 0 0 40px rgba(0, 0, 0, .4);
+  }
+  /* 動きを減らす設定の端末ではアニメーションしない */
+  @media (prefers-reduced-motion: reduce) {
+    .sidebar { transition: none; }
+  }
+
+  .sp-drawer-head {
+    display: flex;
+    justify-content: flex-end;
+    margin: -4px -4px 0 0;
+  }
+  .sp-drawer-close {
+    width: var(--sp-tap);
+    height: var(--sp-tap);
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: #c9d6ff;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .sp-drawer-close:active { background: rgba(255, 255, 255, .12); }
+
+  /* メニュー項目をタップしやすい高さに */
+  .nav a {
+    min-height: 48px;
+    padding: 12px 14px;
+    font-size: 15px;
+  }
+
+  /* 引き出し下部のアカウント操作（PCでは topbar にあるもの） */
+  .sp-drawer-account {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, .14);
+  }
+  .sp-drawer-account a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    color: #c9d6ff;
+    font-size: 14px;
+  }
+  .sp-drawer-account a:active { background: #102c4d; color: #fff; }
+
+  /* --- 2-5. 背面のスクリム（暗幕） ------------------------------------ */
+  .sp-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: var(--sp-z-scrim);
+    background: rgba(11, 31, 58, .5);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .24s ease, visibility .24s;
+  }
+  body.sp-nav-open .sp-scrim {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* 引き出しを開いている間、背面をスクロールさせない */
+  body.sp-nav-open { overflow: hidden; }
+
+  /* 全画面モーダル表示中（sp.js が sp-modal-open を付与） */
+  body.sp-modal-open {
+    overflow: hidden;
+  }
+
+  /* --- 2-6. 下部タブ（よく使う画面への近道） -------------------------
+     片手で親指が届く位置に主要導線を置きます。「すべて」で引き出しを開きます。 */
+  .sp-bottomnav {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--sp-z-appbar);
+    height: calc(var(--sp-bottomnav-h) + var(--sp-safe-b));
+    padding: 4px 0 var(--sp-safe-b);
+    box-sizing: border-box;
+    background: #ffffff;
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, .06);
+  }
+  .sp-bottomnav a,
+  .sp-bottomnav button {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.15;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    padding: 4px 2px;
+  }
+  .sp-bottomnav-icon {
+    display: block;
+    font-size: 20px;
+    line-height: 1;
+    font-style: normal;
+  }
+  .sp-bottomnav-label {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 2px;
+  }
+  .sp-bottomnav svg { width: 22px; height: 22px; }
+  .sp-bottomnav .is-active { color: var(--primary); }
+  .sp-bottomnav a:active,
+  .sp-bottomnav button:active { background: #f1f5f9; }
+
+  /* --- 2-7. 既存 topbar は「その画面の操作バー」として2段目に ---------- */
+  .topbar {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    overflow: visible;
+    gap: 8px;
+    padding: 10px 12px;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .05);
+  }
+  .topbar .search {
+    flex: 1 1 auto;
+    order: 0;
+    min-width: 0;
+  }
+  .topbar:has(+ main .schedule-section) .search {
+    display: none;
+  }
+  .topbar.sp-schedule-topbar-hidden {
+    display: none !important;
+  }
+  .topbar .regist-btn.sp-topbar-icon-btn,
+  .topbar .btn.normal-btn.sp-topbar-icon-btn {
+    flex: 0 0 var(--sp-tap);
+    width: var(--sp-tap);
+    min-width: var(--sp-tap);
+    padding: 0;
+    justify-content: center;
+    order: 1;
+  }
+  .topbar .btn.normal-btn.sp-topbar-icon-btn {
+    order: 2;
+  }
+  .topbar .regist-btn.sp-topbar-icon-btn .material-icons,
+  .topbar .btn.normal-btn.sp-topbar-icon-btn .material-icons {
+    margin: 0;
+  }
+  .topbar .btn.sp-topbar-short-btn {
+    flex: 0 0 auto;
+    min-width: var(--sp-tap);
+    padding-left: 10px;
+    padding-right: 10px;
+    font-weight: 700;
+    order: 2;
+  }
+  .topbar .search + .regist-btn,
+  .topbar .search + .btn {
+    margin-left: 0;
+  }
+  .topbar:has(.search):has(.regist-btn) {
+    flex-wrap: nowrap;
+  }
+  .topbar:has(.search):has(.regist-btn) .search {
+    flex: 1 1 auto;
+  }
+  .topbar .search input {
+    width: 100%;
+    height: var(--sp-tap);
+    font-size: 16px;              /* iOS の自動ズーム防止（16px 未満だと拡大される） */
+  }
+  .topbar .regist-btn,
+  .topbar .btn,
+  .topbar > button {
+    flex: 1 1 auto;
+    min-height: var(--sp-tap);
+    justify-content: center;
+    font-size: 14px;
+  }
+  /* 受付情報印刷はスマホ・タブレットでは非表示 */
+  .topbar .print-reservation-btn {
+    display: none !important;
+  }
+  /* 受付・予約一覧の閉じる（×）はモーダルと同じ見た目・タップ領域に */
+  .main-header .modal-close {
+    width: var(--sp-tap);
+    height: var(--sp-tap);
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+  /* アカウント系の操作は引き出し内へ集約したので topbar からは隠す */
+  .topbar .link-btn,
+  .topbar .phase-wrapper { display: none; }
+  /* 公開予約ページのURL表示は1行に収める */
+  .topbar > span:first-child {
+    flex: 1 1 100%;
+    min-width: 0;
+    font-size: 12px;
+    overflow: hidden;
+  }
+  .topbar > span:first-child a {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    min-height: var(--sp-tap);
+    padding: 10px 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px !important;
+  }
+
+  /* --- 2-8. カード等の共通調整 ---------------------------------------- */
+  .grid.cols-2,
+  .grid.cols-3 { grid-template-columns: 1fr; }
+  /* 既存CSSで列位置が固定されているため、縦積みに戻す */
+  .grid.cols-2 .card:first-child,
+  .grid.cols-2 .card:last-child { grid-column: auto; }
+  .card { padding: 14px; }
+  .main-section { margin-bottom: 12px; }
+
+  /* --- 2-9. PC前提の最小幅指定を解除 ------------------------------------
+     既存CSSにはコンテナ幅が狭いときに逆に 640px まで広げて
+     横スクロールさせる指定が入っており、スマホでは常に横にはみ出します。 */
+  .menu-mgmt-layout .main-section-body {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  .menu-mgmt-layout .main-section { overflow-x: visible; }
+
+  /* --- 2-10. モーダルを下部タブより前面に --------------------------------
+     既存の overlay は z-index: 999〜1000 のため、下部タブ(1100)に
+     一番下の操作ボタンが隠れていました。 */
+  .popup-overlay,
+  .list-popup-overlay,
+  .reservation-modal,
+  .block-modal,
+  .reservation-detail-modal {
+    z-index: var(--sp-z-modal);
+  }
+
+  /* カレンダー本体は overlay より前面に（SPで z-index を上げた結果、
+     半透明グレーがカレンダーを覆って操作不能になっていたため） */
+  .calendar-popup,
+  #calendarPopup,
+  #dateCalendarModal {
+    z-index: calc(var(--sp-z-modal) + 10);
+  }
+
+  /* 受付 登録／編集／詳細：2カラムを縦積み（横スクロール防止） */
+  #reservationModal .sections-container,
+  #editModal .sections-container,
+  #reservationDetailModal .sections-container {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 16px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+  #reservationModal .reception-section,
+  #reservationModal .customer-section,
+  #editModal .reception-section,
+  #editModal .customer-section,
+  #reservationDetailModal .reception-section,
+  #reservationDetailModal .customer-section {
+    flex: none;
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100%;
+  }
+
+  /* --- 2-11. セクションヘッダー ----------------------------------------- */
+  .main-header,
+  .schedule-header {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px;
+    overflow: visible;
+    white-space: normal;
+  }
+  .main-header.sp-main-header-hidden {
+    display: none !important;
+  }
+
+  .sp-search-actions-inline,
+  .search-form-actions.sp-search-actions-inline {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+  }
+  .search-form-actions.sp-search-actions-inline > * {
+    width: auto;
+    min-height: var(--sp-tap);
+  }
+  .sp-search-actions-inline .link-btn,
+  .sp-search-actions-inline .search-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .sp-search-actions-inline .clear-btn,
+  .sp-search-actions-inline .btn.ghost {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+    padding-left: 10px;
+    padding-right: 10px;
+    white-space: nowrap;
+  }
+
+  .main-title,
+  .schedule-title { font-size: 15px; }
+
+  /* --- 2-12. 一覧テーブル → カード表示 ----------------------------------
+     .results-table を対象に、1行 = 1カード に組み替えます。
+     見出し（th）のテキストは sp.js が各セルの data-label に写し、
+     ::before で項目名として表示します。                                   */
+  .results-table-container {
+    padding: 12px;
+    overflow-x: visible;
+  }
+
+  .results-table {
+    display: block;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+  }
+  .results-table thead {
+    /* 読み上げ用に残しつつ視覚的に隠す */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .results-table tbody { display: block; }
+
+  .results-table tbody tr {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 12px;
+    padding: 4px 0 0;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .07);
+    overflow: hidden;
+  }
+  .results-table tbody tr:hover,
+  .results-table tbody tr.table-row-alt { background: #fff; }
+
+  .results-table tbody td {
+    display: grid;
+    grid-template-columns: 6.5em minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    padding: 10px 14px;
+    border-bottom: 1px dashed var(--line);
+    font-size: 14px;
+    width: auto !important;
+    white-space: normal;
+    word-break: break-word;
+  }
+  .results-table tbody td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+    padding-top: 1px;
+  }
+  /* data-label が無いセルはラベル列を作らない */
+  .results-table tbody td:not([data-label]) { grid-template-columns: minmax(0, 1fr); }
+  .results-table tbody td:not([data-label])::before { display: none; }
+
+  /* カード見出し（顧客名・メニュー名などの主項目）を先頭に大きく置く */
+  .results-table tbody td.sp-card-title {
+    order: -2;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 12px 14px 8px;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.4;
+    border-bottom: 0;
+  }
+  .results-table tbody td.sp-card-title::before { display: none; }
+
+  /* ID などの識別子は見出しの直下に小さなチップで置く
+     （HTMLは書き換えず、data-label を ::before で頭に付けています） */
+  .results-table tbody td.sp-card-id {
+    order: -1;
+    display: block;
+    align-self: flex-start;
+    margin: 0 14px 10px;
+    padding: 3px 9px;
+    border: 0;
+    border-radius: 9999px;
+    background: #eef2f7;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+  .results-table tbody td.sp-card-id::before {
+    content: attr(data-label) " ";
+    padding: 0;
+    font-size: inherit;
+  }
+
+  /* 操作ボタンはカード末尾にまとめ、横並びで幅いっぱいに */
+  .results-table tbody td.action-cell,
+  .results-table tbody td.col-action {
+    order: 10;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 14px calc(10px + 2px);
+    border-bottom: 0;
+    background: #fafbfc;
+    text-align: left;
+  }
+  .results-table tbody td.action-cell::before,
+  .results-table tbody td.col-action::before { display: none; }
+  .results-table tbody td.action-cell > *,
+  .results-table tbody td.col-action > * {
+    flex: 1 1 calc(50% - 4px);
+    min-height: var(--sp-tap);
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    font-size: 14px;
+  }
+
+  /* --- 2-13. 検索結果ヘッダー／ページャー -------------------------------- */
+  .search-results-header,
+  .reservation-results-header,
+  .usage-list-pager-wrap {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px;
+    justify-content: flex-start;
+  }
+  /* SP一覧：上部は件数＋表示件数のみ1行、ページャは一覧下 */
+  .search-results-header.sp-list-pager-toolbar,
+  .reservation-pager.sp-list-pager-toolbar,
+  .usage-list-pager-wrap.sp-list-pager-toolbar {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+  .sp-list-pager-toolbar .results-info {
+    flex: 1 1 auto;
+    width: auto;
+    text-align: left;
+    margin: 0;
+  }
+  .sp-list-pager-toolbar .pagination-controls {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: 8px;
+    width: auto;
+  }
+  .sp-list-pager-toolbar .page-size-select {
+    min-height: var(--sp-tap);
+    width: auto;
+    min-width: 5.5em;
+  }
+  .sp-list-pager-footer {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px 10px;
+    padding: 10px 12px;
+    border-top: 1px solid var(--line);
+    background: #fff;
+  }
+  .sp-list-pager-footer .pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 4px 6px;
+  }
+  .sp-list-pager-footer .page-btn {
+    min-width: var(--sp-tap);
+    min-height: var(--sp-tap);
+    font-size: 14px;
+  }
+  .sp-list-pager-footer .page-size-select,
+  .sp-list-pager-footer .page-input {
+    min-height: 40px;
+    font-size: 14px;
+  }
+  .sp-list-pager-footer .page-input {
+    width: 48px;
+  }
+  .sp-list-pager-footer .page-info,
+  .sp-list-pager-footer .page-range {
+    font-size: 12px;
+  }
+  .sp-list-pager-footer .page-range {
+    flex: 1 1 100%;
+    width: auto;
+    text-align: center;
+    margin: 0;
+  }
+
+  /* --- 2-13b. 検索条件パネル（SPは初期閉じ・絞り込みボタン） ------------ */
+  .sp-search-filter-bar {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px 12px 12px;
+  }
+  .sp-search-filter-toggle {
+    flex: 1 1 auto;
+    width: 100%;
+    justify-content: center;
+    min-height: var(--sp-tap);
+    padding: 8px 12px;
+    gap: 4px;
+  }
+  .sp-search-filter-toggle .material-icons {
+    font-size: 20px;
+  }
+  [data-sp-search-filter].sp-search-filter-panel--collapsed {
+    display: none !important;
+  }
+
+  .pagination-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 12px;
+  }
+  .page-btn {
+    min-width: var(--sp-tap);
+    min-height: var(--sp-tap);
+    font-size: 15px;
+  }
+  .page-size-select,
+  .page-input {
+    min-height: var(--sp-tap);
+    font-size: 16px;
+  }
+  .page-input { width: 56px; }
+  .page-range { width: 100%; text-align: center; }
+  .search-results-header .results-info,
+  .reservation-results-header .results-info {
+    text-align: left;
+  }
+
+  /* 利用料金・メニュー管理：タブ（SPは横スクロール・コンパクト表示） */
+  .usage-tab-list,
+  .menu-mgmt-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin-top: 12px;
+  }
+  .usage-tab-list::-webkit-scrollbar,
+  .menu-mgmt-tabs::-webkit-scrollbar { display: none; }
+  .usage-tab-btn,
+  .menu-mgmt-tab-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 12px;
+    padding: 8px 10px;
+    min-height: 0;
+  }
+  .usage-list-card {
+    padding: 10px;
+  }
+  .usage-list-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding-left: 0;
+    padding-right: 0;
+    margin-bottom: 4px;
+  }
+  .usage-list-toolbar > span {
+    font-size: 13px;
+  }
+  .usage-list-pager-wrap {
+    padding: 8px 4px 10px;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .usage-list-pager-wrap:not(.sp-list-pager-toolbar) .results-info {
+    margin-right: 0 !important;
+    width: 100%;
+    text-align: left;
+  }
+  .usage-list-pager-wrap:not(.sp-list-pager-toolbar) .pagination-controls {
+    gap: 4px 6px;
+    width: 100%;
+  }
+  .usage-list-pager-wrap .pagination {
+    gap: 2px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .usage-list-pager-wrap .page-btn {
+    min-width: var(--sp-tap);
+    min-height: var(--sp-tap);
+    padding: 2px 6px;
+    font-size: 13px;
+  }
+  .usage-list-pager-wrap .page-size-select,
+  .usage-list-pager-wrap .page-input {
+    min-height: 32px;
+    font-size: 13px;
+    padding: 4px 4px;
+  }
+  .usage-list-pager-wrap .page-input {
+    width: 40px;
+  }
+  .usage-list-pager-wrap .page-info,
+  .usage-list-pager-wrap .page-range {
+    font-size: 12px;
+  }
+  .usage-list-pager-wrap:not(.sp-list-pager-toolbar) .page-range {
+    flex: 1 1 100%;
+  }
+  .usage-list-card .sp-list-pager-footer .page-btn {
+    min-width: var(--sp-tap);
+    min-height: var(--sp-tap);
+    padding: 2px 6px;
+    font-size: 13px;
+  }
+  .usage-list-card .sp-list-pager-footer .page-size-select,
+  .usage-list-card .sp-list-pager-footer .page-input {
+    min-height: 32px;
+    font-size: 13px;
+    padding: 4px 4px;
+  }
+  .usage-list-card .sp-list-pager-footer .page-input {
+    width: 40px;
+  }
+  .usage-list-card .sp-list-pager-footer .page-info,
+  .usage-list-card .sp-list-pager-footer .page-range {
+    font-size: 12px;
+  }
+
+  /* --- 2-14. フォーム ---------------------------------------------------- */
+  .form-row,
+  .form-row-inresource {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    min-width: 0 !important;
+  }
+  .form-row .form-group,
+  .form-group-half,
+  .form-group-child-1,
+  .form-group-child-2,
+  .form-group-child-3 {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 auto;
+  }
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 13px; }
+
+  /* 入力欄は 16px 以上（iOS Safari の自動ズーム対策）＋ 44px 以上の高さ */
+  .form-input,
+  select.form-input,
+  input[type="text"],
+  input[type="tel"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  select,
+  textarea {
+    font-size: 16px !important;
+    min-height: var(--sp-tap);
+  }
+  textarea,
+  textarea.form-input,
+  .form-textarea,
+  .form-textarea-small {
+    min-height: 96px;
+    height: auto;
+  }
+  .form-zip { width: 7em; }
+  .form-icon { display: none; }
+
+  .search-form-section { padding: 12px; }
+  .search-form-actions:not(.sp-search-actions-inline) {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .search-form-actions:not(.sp-search-actions-inline) > * {
+    width: 100%;
+    min-height: var(--sp-tap);
+  }
+  /* シフト設定・基本設定など：戻るはアプリバー、保存のみ横幅いっぱい */
+  .search-form-actions .sp-page-cancel-btn,
+  .search-form-actions > .cancel-btn {
+    display: none !important;
+  }
+  /* 並び替え画面：戻るはアプリバー、保存のみ横幅いっぱい */
+  .sort-actions .sp-page-cancel-btn,
+  .sort-actions .form-btn-cancel,
+  .sort-actions button[onclick*="goBack"] {
+    display: none !important;
+  }
+  .sort-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .sort-actions > .form-btn:not(.form-btn-cancel) {
+    width: 100%;
+    min-height: var(--sp-tap);
+  }
+
+  /* 基本設定・検索条件などの「ラベル：入力欄」行を縦積みに
+     （横並びのままだと 120px のラベル＋入力欄で画面幅を超えます） */
+  .search-form-grid,
+  .search-form-grid-setting {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .search-form-grid > *,
+  .search-form-grid-setting > *,
+  .search-form-content > * { min-width: 0; }
+
+  .search-form-row {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 4px;
+  }
+  .search-form-label {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: 0 0 auto;
+    font-size: 13px;
+  }
+  .search-form-input {
+    width: 100%;
+    min-width: 0;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .search-form-input > input,
+  .search-form-input > select,
+  .search-form-input > textarea { min-width: 0; }
+  .search-form-input.radio-group { gap: 8px 16px; }
+  .search-form-input.radio-group label { min-height: var(--sp-tap); }
+
+  /* 受付・予約完了メールの添付：説明文をファイル選択ボタンの下に出す
+     （flex-wrap + flex-basis:100% で横に回り込んで見切れていた） */
+  .mail-attachment-input {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+  }
+  .mail-attachment-description {
+    display: block;
+    flex: 0 0 auto;
+    width: 100%;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--muted);
+    white-space: normal;
+  }
+
+  /* 受付・予約メールの受信：完了・キャンセル完了を縦積み */
+  .copy-mail-options-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .copy-mail-option-col {
+    min-width: 0;
+    width: 100%;
+  }
+  .copy-mail-option-row {
+    flex-wrap: wrap;
+    gap: 8px 16px;
+  }
+  .copy-mail-addr-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+  .copy-mail-addr-label {
+    width: 100% !important;
+    min-width: 0 !important;
+    font-size: 13px;
+    padding-top: 0 !important;
+  }
+  .copy-mail-addr-inputs {
+    width: 100%;
+  }
+
+  /* --- 2-15. モーダル → 全画面シート ------------------------------------
+     80vw × 80vh の中央モーダルはスマホでは中身が読めないため、
+     画面いっぱいのシート（ヘッダー固定・本文スクロール・ボタン下部固定）に。 */
+  .popup-overlay,
+  .list-popup-overlay,
+  .reservation-modal,
+  .block-modal,
+  .reservation-detail-modal {
+    padding: 0 !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+    z-index: var(--sp-z-modal);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .list-modal {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+  }
+  .normal-modal,
+  .division-modal,
+  .normal-modal .modal-content,
+  .division-modal .modal-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .modal-header,
+  .modal-header-new {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    padding-top: calc(12px + var(--sp-safe-t));
+  }
+  .modal-header .modal-close,
+  .modal-header-new .modal-close {
+    width: var(--sp-tap);
+    height: var(--sp-tap);
+    font-size: 24px;
+  }
+  .modal-actions,
+  .modal-actions-new {
+    position: sticky;
+    bottom: 0;
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 12px calc(12px + var(--sp-safe-b));
+    margin: 0;
+    background: #fff;
+    border-top: 1px solid var(--line);
+  }
+  .modal-actions:not(.modal-actions--sp-footer) > *,
+  .modal-actions-new:not(.modal-actions--sp-footer) > * {
+    width: 100%;
+    min-height: 48px;
+    margin: 0;
+    justify-content: center;
+  }
+
+  /* モーダルフッター：主要2ボタン＋⋯（1行） */
+  .modal-actions--sp-footer {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr auto;
+    flex-direction: row !important;
+    align-items: stretch;
+    flex-shrink: 0;
+    overflow: visible;
+    gap: 8px;
+  }
+  .modal-actions--sp-footer:not(.modal-actions--has-overflow):not([data-sp-visible-count="1"]):not(.modal-actions--sp-footer-single) {
+    grid-template-columns: 1fr 1fr;
+  }
+  .modal-actions--sp-footer[data-sp-visible-count="1"],
+  .modal-actions--sp-footer.modal-actions--sp-footer-single {
+    grid-template-columns: 1fr;
+  }
+  .modal-actions--sp-footer[data-sp-visible-count="1"] > .modal-btn:not(.sp-modal-footer-close):not(.modal-action-pc-only),
+  .modal-actions--sp-footer.modal-actions--sp-footer-single > .modal-btn:not(.sp-modal-footer-close):not(.modal-action-pc-only) {
+    width: 100%;
+    grid-column: 1 / -1;
+  }
+  .modal-actions--sp-footer.modal-actions--empty {
+    display: none !important;
+  }
+  .modal-actions--sp-footer > .modal-overflow-menu {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 6px);
+    left: auto;
+    width: min(100vw - 24px, 320px);
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    margin: 0;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    z-index: 8;
+  }
+  .modal-actions--sp-footer > .modal-overflow-menu:not([hidden]) {
+    display: flex;
+  }
+  .modal-actions--sp-footer > .modal-overflow-menu[hidden] {
+    display: none !important;
+  }
+  .modal-actions--sp-footer > .modal-btn:not(.sp-modal-footer-close):not(.modal-action-pc-only),
+  .modal-actions--sp-footer > .modal-actions-overflow {
+    width: auto;
+    min-width: 0;
+    min-height: 48px;
+    margin: 0;
+    font-size: 13px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .modal-actions--sp-footer .modal-action-pc-only,
+  .modal-actions--sp-footer .sp-modal-footer-close,
+  .modal-actions--sp-footer .sp-modal-action-stash {
+    display: none !important;
+  }
+  .modal-actions--sp-footer > .modal-actions-overflow {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+  }
+  .modal-actions--sp-footer .modal-overflow-toggle {
+    width: var(--sp-tap);
+    min-width: var(--sp-tap);
+    padding: 0;
+    font-size: 22px;
+    line-height: 1;
+    background: #f5f5f5;
+    color: #374151;
+    border: 1px solid #e0e0e0;
+  }
+  .modal-actions--sp-footer .modal-overflow-menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: var(--sp-tap);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+  }
+  .modal-actions--sp-footer .modal-overflow-menu-item.modal-btn-primary {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+  }
+  .modal-actions--sp-footer .modal-overflow-menu-item.modal-btn-delete,
+  .modal-actions--sp-footer .modal-overflow-menu-item.modal-overflow-menu-item--danger {
+    background: #dc2626;
+    color: #fff;
+    border: none;
+  }
+  .modal-actions--sp-footer .modal-overflow-menu-item:active {
+    filter: brightness(0.95);
+  }
+  .sp-modal-footer-close {
+    display: none !important;
+  }
+  /* 受付・予約詳細：主要2操作＋オーバーフロー */
+  .modal-actions--detail.modal-actions--sp-footer {
+    grid-template-areas: "complete edit overflow-btn";
+    grid-template-columns: 1fr 1fr auto;
+  }
+  .modal-actions--detail .modal-action-complete { grid-area: complete; }
+  .modal-actions--detail .modal-action-edit { grid-area: edit; }
+  .modal-actions--detail .modal-actions-overflow { grid-area: overflow-btn; }
+
+  dialog { width: calc(100% - 24px); max-width: none; }
+  dialog .row { grid-template-columns: 1fr; gap: 4px; }
+
+  /* --- 2-16. 受付・予約（スケジュール表） ------------------------------- */
+  .schedule-section {
+    margin-bottom: 12px;
+  }
+  body:has(main.main .schedule-section) .schedule-section {
+    margin-bottom: 0; /* 二重スクロール防止レイアウトでは余白で溢れるため無効 */
+  }
+  .calendar-container { padding: 0 0 12px; }
+  .schedule-container {
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    overscroll-behavior-x: contain;
+  }
+  /* ツールバー 2段構成（SP）
+     1行目：検索 / カレンダー / フィルター / WEB停止 / 更新
+     2行目：前日 / 今日 / 日付 / 翌日 */
+  body:has(main.main .schedule-section) .schedule-header {
+    display: grid !important;
+    flex: 0 0 auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+    grid-template-areas:
+      "search calendar filter warn refresh"
+      "dates dates dates dates dates";
+    align-items: center;
+    column-gap: 6px;
+    row-gap: 8px;
+    width: 100%;
+    min-width: 0;
+    overflow-x: visible;
+    white-space: normal;
+  }
+  .schedule-title-section,
+  .schedule-controls {
+    display: contents;
+  }
+  .schedule-title {
+    display: none !important;
+  }
+  .schedule-header > .search {
+    grid-area: search;
+    min-width: 0;
+    width: 100%;
+  }
+  .schedule-header > .search input {
+    width: 100%;
+    min-height: var(--sp-tap);
+    font-size: 16px;
+    box-sizing: border-box;
+  }
+  #filterToggleBtn {
+    grid-area: filter;
+    justify-self: end;
+    min-width: var(--sp-tap);
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  #filterToggleBtn .schedule-filter-btn-label {
+    display: none;
+  }
+  #filterToggleBtn .material-icons {
+    font-size: 22px;
+  }
+  #calendarIcon {
+    grid-area: calendar;
+    justify-self: end;
+    flex-shrink: 0;
+  }
+  .schedule-header > .warn-btn,
+  .schedule-header > .link-btn.schedule-web-reception-btn,
+  .schedule-header > .schedule-web-reception-btn {
+    grid-area: warn;
+    justify-self: end;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--sp-tap);
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .schedule-web-reception-btn .schedule-web-reception-label {
+    display: none;
+  }
+  .schedule-web-reception-btn .schedule-web-reception-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+  .schedule-section .date-controls {
+    grid-area: dates;
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+  }
+  #scheduleRefreshBtn,
+  .schedule-section .schedule-refresh-btn {
+    grid-area: refresh;
+    justify-self: end;
+    min-width: var(--sp-tap);
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .schedule-section .schedule-refresh-btn .schedule-refresh-label {
+    display: none;
+  }
+  .schedule-section .schedule-last-updated {
+    display: none !important;
+  }
+  .schedule-section .schedule-refresh-controls {
+    display: none;
+  }
+  #dateInput,
+  .schedule-section .date-input {
+    width: 100%;
+    min-width: 0;
+    min-height: var(--sp-tap);
+    font-size: 15px;
+    box-sizing: border-box;
+  }
+  .view-toggle {
+    display: none !important;
+  }
+  body:has(main.main .schedule-section) .time-slot {
+    padding: 4px 2px;
+    font-size: 0.65rem;
+  }
+
+  .schedule-section #prevDay,
+  .schedule-section #nextDay,
+  .schedule-section #todayBtn {
+    min-height: var(--sp-tap);
+    padding-left: 6px;
+    padding-right: 6px;
+    font-size: 13px;
+    gap: 2px;
+  }
+  .schedule-section #prevDay .material-icons,
+  .schedule-section #nextDay .material-icons,
+  .schedule-section #todayBtn .material-icons {
+    font-size: 18px;
+  }
+
+  .date-btn,
+  .calendar-icon,
+  .view-toggle-button {
+    min-height: var(--sp-tap);
+    font-size: 14px;
+  }
+  .resource-filter-container { gap: 8px 12px; }
+
+  /* 受付・予約 リソース絞り込み（SP は自然な高さで全体表示） */
+  body:has(main.main .schedule-section) .resource-filter-section {
+    flex: 0 0 auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    overflow: visible;
+    max-height: none;
+  }
+  .resource-filter-section .resource-filter-container {
+    gap: 0.5em;
+  }
+  .resource-filter-section .filter-group {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 0.5em;
+    min-height: 0;
+  }
+  /* JS が display:block で開くため gap が効かない — 担当者行と設備行の間 */
+  .resource-filter-section > .resource-filter-container + .filter-group {
+    margin-top: 0.5em;
+  }
+  .resource-filter-section .filter-label {
+    min-width: 60px;
+    padding: 0;
+    flex-shrink: 0;
+  }
+
+  /* リソース絞り込みチップ（.radio-3）— fieldset 初期余白を除去 */
+  .resource-filter-section fieldset.radio-3,
+  .print-modal-resource-filter-section fieldset.print-radio-3 {
+    margin: 0;
+    padding: 0;
+    border: none;
+    min-width: 0;
+    min-inline-size: 0;
+    gap: 0.3em;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .resource-filter-item,
+  .user-filter-item { min-height: var(--sp-tap); }
+
+  /* フィルター展開時：フィルター全体を表示し、下のスケジュール表までページスクロール */
+  html:has(body.sp-schedule-filter-open main.main .schedule-section),
+  body.sp-schedule-filter-open:has(main.main .schedule-section) {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  body.sp-schedule-filter-open:has(main.main .schedule-section) .app {
+    height: auto;
+    min-height: 100dvh;
+    max-height: none;
+    overflow: visible;
+  }
+  body.sp-schedule-filter-open:has(main.main .schedule-section) .main,
+  body.sp-schedule-filter-open:has(main.main .schedule-section) .topbar ~ .main {
+    overflow: visible;
+    flex: 0 0 auto;
+    min-height: 0;
+  }
+  body.sp-schedule-filter-open:has(main.main .schedule-section) .schedule-section {
+    overflow: visible;
+    flex: 0 0 auto;
+    min-height: 0;
+    height: auto !important;
+  }
+  body.sp-schedule-filter-open:has(main.main .schedule-section) .calendar-container {
+    flex: 0 0 auto;
+    min-height: 0;
+    width: 100%;
+  }
+  body.sp-schedule-filter-open:has(main.main .schedule-section) .schedule-container {
+    flex: none !important;
+    height: min(62dvh, 640px);
+    min-height: 280px;
+    max-height: none;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* --- 2-16b. 日付選択カレンダー（受付・予約） ---------------------------
+     PCは2か月横並び・幅500px前提のため、スマホでは縦積み＆幅を画面内に。 */
+  .calendar-popup,
+  #calendarPopup,
+  #dateCalendarModal {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px);
+    max-height: calc(100dvh - 72px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 14px 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .calendar-popup-content {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .calendar-month-controls {
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+  .calendar-months-wrapper {
+    flex-direction: column;
+    width: 100%;
+    gap: 16px;
+  }
+  .calendar-month {
+    width: 100%;
+    flex: none;
+  }
+  .calendar-month-btn {
+    width: var(--sp-tap);
+    height: var(--sp-tap);
+  }
+  .calendar-day,
+  .calendar-day-header {
+    min-height: 36px;
+    padding: 6px 2px;
+    font-size: 13px;
+  }
+
+  /* --- 2-17. カード化しないテーブルは横スクロールで維持 -----------------
+     営業時間表など、項目数が多くカード化すると縦に伸びすぎる表と、
+     見出しに結合セルがある表（sp.js が .sp-no-card を付与）は据え置きます。
+     thead/tbody を別テーブル（display:table）にすると列幅が揃わないため、
+     表は1つの table のまま親で横スクロールさせる。 */
+  .business-hours-table,
+  .usage-info-table {
+    display: table;
+    width: max-content;
+    min-width: 100%;
+    overflow: visible;
+  }
+  .usage-info-table {
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+  }
+  .usage-info-table td:first-child {
+    width: 33.333%;
+    max-width: 33.333%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  .usage-info-table td:last-child {
+    width: 66.667%;
+    box-sizing: border-box;
+    word-break: break-word;
+  }
+  .search-form-input:has(.business-hours-table),
+  .search-form-input:has(.usage-info-table),
+  .results-table-container:has(.business-hours-table),
+  .card:has(.usage-info-table) {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 営業時間・定休日：説明文だけ下段へ（タイトル＋トグルを1行に残す） */
+  .business-hours-option-item {
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 6px;
+  }
+  .business-hours-option-item .break-settings-toggle-desc {
+    flex: 1 1 100%;
+    width: 100%;
+    margin: 0;
+  }
+
+  .results-table.sp-no-card { display: table; }
+  .results-table.sp-no-card thead { position: static; width: auto; height: auto; margin: 0; clip: auto; }
+  .results-table.sp-no-card tbody { display: table-row-group; }
+  .results-table.sp-no-card tbody tr { display: table-row; margin: 0; border: 0; box-shadow: none; border-radius: 0; }
+  .results-table.sp-no-card tbody td { display: table-cell; padding: 10px; border-bottom: 1px solid var(--line); }
+  .results-table.sp-no-card tbody td::before { display: none; }
+  .results-table.sp-no-card { min-width: max-content !important; }
+  .results-table-container:has(.sp-no-card) { overflow-x: auto; }
+
+  /* --- 2-17b. 各ページの <style> に書かれた PC 前提の幅指定を打ち消す ----
+     （本実装ではページ側の指定自体を見直すのが望ましい箇所です）        */
+  .results-table:not(.sp-no-card) { min-width: 0 !important; }
+
+  /* 多言語管理：言語チェックボックスの4列固定 → 画面幅に応じて折り返す */
+  .search-form-input.checkbox-group {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+    gap: 8px 12px !important;
+  }
+  .search-form-input.checkbox-group label { min-height: var(--sp-tap); }
+
+  /* 操作履歴：検索条件の3列グリッド → 1列、日付範囲は折り返す */
+  .oplog-search-form .oplog-search-grid-row { grid-template-columns: 1fr !important; gap: 12px !important; }
+  .oplog-search-form .date-input-group { flex-wrap: wrap; }
+  .oplog-search-form .date-input-group .form-input { min-width: 0 !important; flex: 1 1 120px; }
+
+  /* 操作履歴カード：日時1行・IP左寄せ・操作内容幅を他列に揃える */
+  .results-table.oplog-table tbody td:first-child,
+  .results-table.oplog-table tbody td.sp-card-title {
+    white-space: nowrap;
+  }
+  .results-table.oplog-table tbody td.oplog-cell-narrow[style*="text-align"] {
+    text-align: left !important;
+  }
+  .results-table.oplog-table tbody td.oplog-op-content {
+    max-width: none !important;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* シフト設定・基本設定など：カレンダー見出しと日付操作を画面幅に収める */
+  .mdc-calendar {
+    padding: 12px;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .mdc-calendar-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    min-width: 0;
+    width: 100%;
+  }
+  .mdc-calendar-title {
+    flex: 1 1 100%;
+    min-width: 0;
+    margin: 0;
+  }
+  .mdc-calendar-header .date-controls {
+    flex: 1 1 100%;
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    gap: 6px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  .mdc-calendar-header .date-input {
+    width: 100%;
+    min-width: 0;
+    min-height: var(--sp-tap);
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+  .mdc-calendar-header .date-btn {
+    min-height: var(--sp-tap);
+    padding: 6px 8px;
+    font-size: 12px;
+    gap: 2px;
+    white-space: nowrap;
+  }
+  .mdc-calendar-header .date-btn .material-icons {
+    font-size: 18px;
+  }
+  .mdc-calendar-nav {
+    flex: 1 1 100%;
+    justify-content: space-between;
+    min-width: 0;
+    width: 100%;
+  }
+  .mdc-calendar-nav > * { min-height: var(--sp-tap); }
+  .mdc-calendar-day,
+  .mdc-calendar-day-header { padding: 6px 2px !important; font-size: 10px !important; line-height: 1.35; }
+  .mdc-calendar-day .day-number { font-size: 12px !important; }
+
+  /* --- 2-18. ダッシュボード -------------------------------------------- */
+  /* カード見出しの行（h3 と右肩の補足が横並びで潰れていたので折り返す）
+     ※ 現状は inline style で組まれているため属性セレクタで拾っています。
+        本実装では .card-head のようなクラスを付けて指定するのが望ましいです。 */
+  .card > div[style*="space-between"] {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+  .card > div[style*="space-between"] > h3 { flex: 1 1 100%; }
+  .card h3 { line-height: 1.4; }
+
+  .kpi {
+    flex-wrap: wrap;
+    align-items: baseline;
+    text-align: left !important;
+  }
+  .kpi .num { font-size: 24px; }
+  .kpi .muted {
+    flex: 1 1 100%;
+    padding: 0;
+    margin: 2px 0 0;
+    font-size: 13px;
+  }
+
+  .slot {
+    grid-template-columns: 60px minmax(0, 1fr);
+    gap: 4px 10px;
+  }
+  .slot > .chip { grid-column: 2; justify-self: start; }
+  .notice-slot { white-space: normal !important; }
+  .noticesource .notice-slot { display: block; }
+
+  /* --- 2-19. タブ（menu-mgmt は usage-tab と共通スタイル） --- */
+
+  /* --- 2-20. 汎用ボタンのタップ領域 ------------------------------------ */
+  .btn,
+  .regist-btn,
+  .link-btn,
+  .action-btn {
+    min-height: var(--sp-tap);
+    font-size: 14px;
+  }
+
+  /* --- 2-21. DnD：SP ではハンドル非表示・並び替え不可 -------------------
+     追加／削除（←→）ボタンは残し、並べ替えのドラッグだけ無効化する。 */
+  body.sp-no-dnd .rg-drag-handle,
+  body.sp-no-dnd .drag-handle {
+    display: none !important;
+  }
+  body.sp-no-dnd .rg-item--drag-disabled,
+  body.sp-no-dnd [draggable="false"].rg-item {
+    cursor: default;
+  }
+  .sp-sort-pc-only-notice {
+    display: block;
+    margin: 8px 0 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fff7ed;
+    border: 1px solid #fdba74;
+    color: #9a3412;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  /* ▲▼ は各 44×20px のため、誤タップ防止でボタン間を広げる */
+  .sort-order-btns {
+    gap: 18px;
+  }
+
+  /* --- 2-22. パスワード変更：強度バー直下に条件リスト（縦積み） ------- */
+  .search-form-row .search-form-input:has(.password-strength-container) {
+    max-width: 100% !important;
+    width: 100% !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    box-sizing: border-box !important;
+  }
+  .password-strength-container {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+  .password-strength-bar {
+    width: 100%;
+    flex-shrink: 0;
+  }
+  .password-conditions {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-top: 0;
+    margin-bottom: 8px;
+    box-sizing: border-box;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    /* バーの右に回り込まない */
+    float: none !important;
+    clear: both;
+  }
+  .password-conditions .password-condition-text {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    min-width: 0;
+  }
+
+  /* --- 2-23. リソースグループモーダル：縦積み＋選択リスト高さ確保 -------- */
+  .resource-group-modal .rg-modal-body {
+    flex-direction: column !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    align-items: stretch;
+    min-height: 0;
+  }
+  .resource-group-modal .rg-left,
+  .resource-group-modal .rg-right {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    position: static !important;
+    float: none !important;
+    align-self: stretch;
+    z-index: auto;
+  }
+  .resource-group-modal .rg-groups-container {
+    flex: 1 1 auto;
+    min-height: 280px;
+    overflow: visible;
+  }
+  .resource-group-modal .rg-group-block .rg-list.rg-drop-zone,
+  .resource-group-modal ul[data-zone="group"] {
+    min-height: 200px;
+    max-height: none;
+    flex: 1 1 auto;
+  }
+  .resource-group-modal .rg-group-block {
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+  }
+  .resource-group-modal .rg-pool-section .rg-list.rg-drop-zone {
+    min-height: 200px;
+    flex: 1 1 auto;
+  }
+
+  /* --- 2-24. 受付 登録／編集／詳細モーダル：2カラムを縦積み ------------
+     PCは左右2列（min-width:350px）のため、SPでは横スクロールになる。
+     項目を1列に積み、幅は画面内に収める。 */
+  #reservationModal .sections-container,
+  #editModal .sections-container,
+  #reservationDetailModal .sections-container,
+  .reservation-modal .sections-container,
+  .reservation-detail-modal .sections-container {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 16px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 12px;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+  #reservationModal .reception-section,
+  #reservationModal .customer-section,
+  #editModal .reception-section,
+  #editModal .customer-section,
+  #reservationDetailModal .reception-section,
+  #reservationDetailModal .customer-section,
+  .reservation-modal .reception-section,
+  .reservation-modal .customer-section,
+  .reservation-detail-modal .reception-section,
+  .reservation-detail-modal .customer-section {
+    flex: none;
+    min-width: 0 !important;
+    max-width: 100%;
+    width: 100% !important;
+  }
+  #reservationModal .form-group,
+  #reservationModal .form-group-with-icon,
+  #editModal .form-group,
+  #editModal .form-group-with-icon,
+  #reservationDetailModal .detail-item {
+    min-width: 0;
+    max-width: 100%;
+  }
+  #reservationModal .form-content,
+  #editModal .form-content,
+  #reservationModal .form-input,
+  #editModal .form-input,
+  #reservationModal select.form-input,
+  #editModal select.form-input,
+  #reservationModal .form-textarea,
+  #editModal .form-textarea {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  /* 日時・顧客検索・姓名など横並び行を折り返し */
+  #reservationModal .date-input-group,
+  #reservationModal .date-input-group-free,
+  #editModal .date-input-group,
+  #editModal .date-input-group-free {
+    flex-wrap: wrap;
+    width: 100%;
+    min-width: 0;
+  }
+  #reservationModal .date-input-group .form-input,
+  #reservationModal .date-input-group-free .form-input,
+  #editModal .date-input-group .form-input,
+  #editModal .date-input-group-free .form-input {
+    flex: 1 1 140px;
+    min-width: 0 !important;
+  }
+  #reservationModal .time-range-group,
+  #editModal .time-range-group {
+    flex-wrap: wrap;
+  }
+  #reservationModal .form-group > div[style*="display: flex"],
+  #editModal .form-group > div[style*="display: flex"],
+  #reservationDetailModal .detail-item > div[style*="display: flex"] {
+    flex-wrap: wrap !important;
+    min-width: 0;
+    max-width: 100%;
+  }
+  #reservationModal .customer-input-mode-toggle,
+  #editModal .customer-input-mode-toggle {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  #reservationModal .mode-toggle-btn,
+  #editModal .mode-toggle-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  #reservationDetailModal .detail-value {
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  /* 姓名／カナ：登録フォームと同様に画面幅いっぱいで半々 */
+  #reservationDetailModal .detail-name-pair {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  #reservationDetailModal .detail-name-pair .detail-value {
+    flex: 1 1 0 !important;
+    width: auto !important;
+    max-width: none;
+    min-width: 0;
+  }
+  #reservationModal,
+  #editModal,
+  #reservationDetailModal,
+  #reservationModal .normal-modal,
+  #editModal .normal-modal,
+  #reservationDetailModal .normal-modal {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+  #reservationModal .modal-body,
+  #editModal .modal-body,
+  #reservationDetailModal .modal-body {
+    overflow-x: hidden;
+    min-width: 0;
+  }
+
+  /* 受付・予約 登録／編集シート：本文スクロール＋フッター固定 */
+  #reservationModal .normal-modal,
+  #editModal .normal-modal {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+  #reservationModal form,
+  #editModal .sections-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  #reservationModal .modal-tabs,
+  #reservationModal > .normal-modal > #errorPop,
+  #editModal > .normal-modal > #errorPop {
+    flex-shrink: 0;
+  }
+  #reservationModal .modal-actions,
+  #editModal .modal-actions-new {
+    position: relative;
+    bottom: auto;
+    flex-shrink: 0;
+  }
+
+  /* 受付・予約詳細シート：本文スクロール */
+  #reservationDetailModal .normal-modal {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden !important;
+  }
+  #reservationDetailModal .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  #reservationDetailModal .modal-actions--detail {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    grid-template-areas: "complete edit overflow-btn";
+    gap: 8px;
+    flex-direction: row;
+    align-items: stretch;
+    flex-shrink: 0;
+    overflow: visible;
+  }
+  #reservationDetailModal .modal-overflow-menu {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 6px);
+    left: auto;
+    width: min(100vw - 24px, 320px);
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    margin: 0;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    z-index: 8;
+  }
+  #reservationDetailModal .modal-overflow-menu:not([hidden]) {
+    display: flex;
+  }
+  #reservationDetailModal .modal-overflow-menu[hidden] {
+    display: none !important;
+  }
+  #reservationDetailModal .modal-action-complete { grid-area: complete; }
+  #reservationDetailModal .modal-action-edit { grid-area: edit; }
+  #reservationDetailModal .modal-actions-overflow { grid-area: overflow-btn; }
+  #reservationDetailModal .modal-actions--detail > .modal-btn,
+  #reservationDetailModal .modal-actions--detail > .modal-actions-overflow {
+    width: auto;
+    min-width: 0;
+    min-height: 48px;
+    margin: 0;
+  }
+  #reservationDetailModal .modal-action-pc-only {
+    display: none !important;
+  }
+  #reservationDetailModal .modal-actions-overflow {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+  }
+  #reservationDetailModal .modal-overflow-toggle {
+    width: var(--sp-tap);
+    min-width: var(--sp-tap);
+    padding: 0;
+    font-size: 22px;
+    line-height: 1;
+    background: #f5f5f5;
+    color: #374151;
+    border: 1px solid #e0e0e0;
+  }
+  #reservationDetailModal .modal-overflow-menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: var(--sp-tap);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    box-sizing: border-box;
+  }
+  #reservationDetailModal .modal-overflow-menu-item:not(.modal-overflow-menu-item--danger) {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+  }
+  #reservationDetailModal .modal-overflow-menu-item--danger,
+  #reservationDetailModal .modal-overflow-menu-item.modal-btn-delete {
+    background: #dc2626;
+    color: #fff;
+    border: none;
+  }
+  #reservationDetailModal .modal-overflow-menu-item:active {
+    filter: brightness(0.95);
+  }
+
+  /* 旧ページ版クラス（リダイレクト前の互換） */
+  .reservation-form-page .sections-container,
+  .reservation-detail-page .sections-container {
+    flex-direction: column;
+    gap: 16px;
+    padding: 12px 0;
+  }
+  .reservation-form-page .reception-section,
+  .reservation-form-page .customer-section,
+  .reservation-detail-page .reception-section,
+  .reservation-detail-page .customer-section {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* --- 2-20. タップ領域の補強（--sp-tap 未適用の操作要素） ------------ */
+  .business-hours-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--sp-tap);
+    min-height: var(--sp-tap);
+    padding: 0;
+    margin-left: 4px;
+    flex-shrink: 0;
+    vertical-align: middle;
+    box-sizing: border-box;
+  }
+
+  #btnZipSearch {
+    min-height: var(--sp-tap);
+    box-sizing: border-box;
+  }
+
+  .calendar-btn,
+  .oplog-search-form .calendar-btn {
+    width: var(--sp-tap) !important;
+    height: var(--sp-tap) !important;
+    min-width: var(--sp-tap);
+    min-height: var(--sp-tap);
+    box-sizing: border-box;
+  }
+
+  .pagination .page-btn {
+    min-width: var(--sp-tap);
+    min-height: var(--sp-tap);
+    box-sizing: border-box;
+  }
+
+  .password-toggle-btn,
+  .iprestrict-release-password-toggle {
+    min-width: var(--sp-tap);
+    min-height: var(--sp-tap);
+    width: var(--sp-tap);
+    height: var(--sp-tap);
+    right: 0;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+  .password-input-group .form-input {
+    padding-right: calc(var(--sp-tap) + 4px) !important;
+  }
+  .iprestrict-release-password-wrap .iprestrict-release-input {
+    padding-right: calc(var(--sp-tap) + 4px) !important;
+  }
+
+  label:has(> input[type="checkbox"]):not(fieldset.radio-3 label):not(fieldset.print-radio-3 label) {
+    min-height: var(--sp-tap);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+  }
+
+  /* リソース絞り込みチップ — 2-20 の 44px 化を適用しない（PC と同じ余白） */
+  fieldset.radio-3 > label,
+  fieldset.print-radio-3 > label,
+  fieldset.radio-3 label:has(input[value="B"]),
+  fieldset.print-radio-3 label:has(input[value="B"]) {
+    min-height: 0 !important;
+    height: auto !important;
+    display: flex !important;
+    align-items: center;
+    gap: 0 0.3em !important;
+    padding: 0.3em 0.5em !important;
+    margin: 0 !important;
+    font-size: 0.8rem;
+    max-width: none;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+  fieldset.radio-3 input[type="checkbox"],
+  fieldset.print-radio-3 input[type="checkbox"] {
+    display: none !important;
+    position: absolute !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+  fieldset.radio-3 label::before,
+  fieldset.print-radio-3 label::before {
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
+  }
+  fieldset.radio-3 label:has(:checked)::after,
+  fieldset.print-radio-3 label:has(:checked)::after,
+  fieldset.radio-3 label:has(:checked):has(input[value="B"])::after,
+  fieldset.print-radio-3 label:has(:checked):has(input[value="B"])::after {
+    top: 50%;
+    left: calc(0.5em + 5px);
+    transform: translate(-50%, -50%);
+    width: 5px;
+    height: 5px;
+  }
+
+  input[type="checkbox"] {
+    width: 20px !important;
+    height: 20px !important;
+    flex-shrink: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+
+  .business-hours-table td:has(> input[type="checkbox"]),
+  .business-hours-table th:has(> input[type="checkbox"]) {
+    min-width: var(--sp-tap);
+    min-height: var(--sp-tap);
+    padding: 12px 6px;
+    box-sizing: border-box;
+    vertical-align: middle;
+    text-align: center;
+  }
+  .business-hours-table input[type="checkbox"] {
+    width: 20px !important;
+    height: 20px !important;
+  }
+}
+
+
+/* ==========================================================================
+   4. 400px 以下（小型端末）の微調整
+   ========================================================================== */
+@media (max-width: 360px) {
+  .main { padding-left: 8px; padding-right: 8px; }
+  .results-table tbody td { grid-template-columns: 5.5em minmax(0, 1fr); gap: 8px; }
+  .sp-bottomnav a,
+  .sp-bottomnav button { font-size: 9px; }
+  .sp-bottomnav-icon { font-size: 18px; }
+  .schedule-header {
+    column-gap: 4px;
+    row-gap: 6px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .schedule-section #prevDay,
+  .schedule-section #nextDay,
+  .schedule-section #todayBtn {
+    padding-left: 4px;
+    padding-right: 4px;
+    font-size: 12px;
+  }
+  #dateInput,
+  .schedule-section .date-input {
+    font-size: 14px;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  .mdc-calendar-header .date-btn {
+    padding-left: 4px;
+    padding-right: 4px;
+    font-size: 11px;
+  }
+  .mdc-calendar-header .date-input {
+    font-size: 13px;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+}
+
+
+/* ==========================================================================
+   5. 印刷時は追加パーツを出さない
+   ========================================================================== */
+@media print {
+  .sp-appbar,
+  .sp-scrim,
+  .sp-bottomnav { display: none !important; }
+}

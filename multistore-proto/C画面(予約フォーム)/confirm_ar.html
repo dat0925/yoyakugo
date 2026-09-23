@@ -1,0 +1,164 @@
+<!doctype html>
+<html class="no-js" lang="ar" dir="rtl">
+  <head>
+  <script src="../pin_gate.js"></script>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="canonical" href="http://www./">
+    <title></title>
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta property="og:url" content="http://www./">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="">
+    <meta property="og:title" content="">
+    <meta property="og:site_name" content="">
+    <meta property="og:description" content="">
+    <link href="./assets/css/main.css" rel="stylesheet">
+    <script src="./assets/js/vendor/jquery.min.js"></script>
+  </head>
+  <body>
+    <header>
+      <div class="primary_header">
+        <div class="container">
+          <div class="row">
+            <h1 class="title"> ●● عيادة العظام والتقويم </h1>
+            <div class="flow">
+              <ul>
+                <li>التفاصيل</li>
+                <li class="active">تأكيد</li>
+                <li>إكمال</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main>
+      <form action="./complete_ar.html" method="post">
+        <section class="confirm01">
+          <div class="container gutters">
+            <div class="text-center text-xlarge">تسجيل الوصول / الحجز لم يكتمل بعد.</div>
+            <div class="text-center text-large">راجع معلوماتك وانقر «إكمال تسجيل الوصول / الحجز» إذا كان كل شيء صحيحاً.</div>
+            <div class="box">
+              <ul>
+                <li>
+                  <label>
+                    <span class="title_txt">
+                      <span>تفاصيل تسجيل الوصول / الحجز</span>
+                    </span>
+                    <div class="table-container">
+                      <div class="row">
+                        <div class="cell cell-1 text-right">عدد الضيوف</div>
+                        <div class="cell cell-2">1</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">الخدمة</div>
+                        <div class="cell cell-2">
+                          <div class="confirm_menu_name">اسم القائمة اسم القائمة</div>
+                          <ul class="confirm_option_list">
+                            <li>+اسم قائمة الخيارات اسم قائمة الخيارات</li>
+                            <li>+اسم قائمة الخيارات اسم قائمة الخيارات</li>
+                          </ul>
+                        </div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">التاريخ والوقت</div>
+                        <div class="cell cell-2">1 ديسمبر 2025 (اث) 10:30</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">الموظف</div>
+                        <div class="cell cell-2">店舗花子</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">السعر (شامل الضريبة)</div>
+                        <div class="cell cell-2">3,000 JPY</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">الوقت المطلوب</div>
+                        <div class="cell cell-2">45 دقيقة</div>
+                      </div>
+                    </div>
+                  </label>
+                </li>
+                <li>
+                  <label>
+                    <span class="title_txt">
+                      <span>معلومات الحجز</span>
+                    </span>
+                    <div class="table-container">
+                      <div class="row">
+                        <div class="cell cell-1 text-right">الاسم</div>
+                        <div class="cell cell-2">Yamada Taro</div>
+                      </div>
+                      <div class="row" id="furigana_row">
+                        <div class="cell cell-1 text-right">الاسم (فوريغانا)</div>
+                        <div class="cell cell-2"></div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">رقم الهاتف</div>
+                        <div class="cell cell-2">03-0000-1111</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">البريد الإلكتروني</div>
+                        <div class="cell cell-2">test@iflag.co.jp</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">ملاحظات</div>
+                        <div class="cell cell-2">أرغب في معالجة من ممارسة أنثى.</div>
+                      </div>
+                    </div>
+                  </label>
+                </li>
+                <li>
+                  <label>
+                    <span class="title_txt">
+                      <span>التحقق من البريد</span>
+                    </span>
+                    <div class="table-container">
+                      <div class="row">
+                        <div class="cell cell-1 text-right">رمز PIN</div>
+                        <div class="cell cell-2">
+                          <div class="pin_input_wrapper">
+                            <input type="text" class="input_pin" id="pinCode" placeholder="" maxlength="6" pattern="\d{6}">
+                            <div class="pin_progress" id="pinTimer">
+                              <div class="progress_header">
+                                <div class="progress_label">صالح حتى</div>
+                                <div class="progress_text" id="progressText">01:00</div>
+                              </div>
+                              <div class="progress_bar">
+                                <div class="progress_fill" id="progressFill"></div>
+                              </div>
+                              <div class="resend_link" id="resendLink" style="display: none;">
+                                <a href="./index_ar.html">إعادة إرسال رمز PIN</a>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="pin_code_notice">
+                            <p>تم إرسال بريد تحقق إلى test@iflag.co.jp.</p>
+                            <p>أدخل رمز PIN من البريد.</p>
+                            <p class="attention_point">إذا لم يصل البريد، تحقق من البريد العشوائي<br/>أو أكد عنوان البريد وأعد الإرسال.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                </li>
+              </ul>
+              <div class="input_wrap">
+                <div class="back_wrap"><a href="./index_ar.html">تغيير تفاصيل تسجيل الوصول / الحجز</a></div>
+                <p class="submit_wrap">
+                  <input type="submit" value="إكمال تسجيل الوصول / الحجز">
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </form>
+      <div class="foot">© 2025 IFLAG Co, Ltd.</div>
+    </main>
+
+    <script src="./assets/js/main.js"></script>
+  </body>
+</html>

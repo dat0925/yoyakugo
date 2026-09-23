@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <script src="../pin_gate.js"></script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>全店ダッシュボード｜本部コンソール（多店舗管理プロトタイプ）</title>
+    <link href="./style.css" rel="stylesheet">
+    <link href="./sp.css" rel="stylesheet">
+    <link href="./hq.css" rel="stylesheet">
+</head>
+<body>
+<div class="app">
+    <aside id="hqSide"></aside>
+    <header id="hqTop"></header>
+    <main class="main">
+        <div class="hq-head">
+            <div>
+                <h2>📊 全店ダッシュボード</h2>
+                <div class="sub">2026年9月23日（水）09:10 時点｜全 <span id="nStores"></span> 店舗のうち稼働中 <span id="nActive"></span> 店舗</div>
+            </div>
+            <div class="hq-filters">
+                <select id="fArea"><option value="">すべてのエリア</option></select>
+                <select><option>今月（9月）</option><option>先月（8月）</option><option>直近7日</option></select>
+            </div>
+        </div>
+
+        <!-- 1) 全店の合計 -->
+        <div class="hq-kpis" id="kpis"></div>
+
+        <!-- 2) 本部が手を打つべきこと -->
+        <div class="card">
+            <h3>⚠ 本部で確認が必要な店舗</h3>
+            <div class="hq-alerts" id="alerts"></div>
+        </div>
+
+        <!-- 3) 店舗別の比較 -->
+        <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h3 style="margin:0">店舗別の比較</h3>
+                <span class="muted" style="font-size:12px">店舗名をクリックすると、その店舗の管理画面へ入れます（再ログイン不要）</span>
+            </div>
+            <div class="hq-table-wrap">
+                <table class="hq-table" id="storeTable">
+                    <thead><tr>
+                        <th>エリア</th><th>店舗</th><th>本日の予約</th><th>今月の予約</th><th style="min-width:130px">直近7日の推移</th>
+                        <th>WEB予約比率</th><th>キャンセル率</th><th>本部設定</th>
+                    </tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+<script src="./js/hq_data.js"></script>
+<script src="./js/hq_shell.js"></script>
+<script>
+(function () {
+    const act = HQ.stores.filter(s => s.status === '稼働中');
+    nStores.textContent = HQ.stores.length; nActive.textContent = act.length;
+    HQ.areas.forEach(a => fArea.insertAdjacentHTML('beforeend', '<option>' + a + '</option>'));
+
+    function render() {
+        const area = fArea.value;
+        const list = HQ.stores.filter(s => !area || s.area === area);
+        const live = list.filter(s => s.status === '稼働中');
+        const sum = k => live.reduce((a, s) => a + s[k], 0);
+        const avg = k => live.length ? (live.reduce((a, s) => a + s[k] * s.month, 0) / Math.max(1, sum('month'))) : 0;
+
+        kpis.innerHTML = [
+            ['本日の予約（全店）', sum('today'), '件', '前週同曜日 +9件', 'up'],
+            ['今月の予約（全店）', sum('month').toLocaleString(), '件', '前月同日比 +12.4%', 'up'],
+            ['WEB予約比率', avg('web').toFixed(1), '%', '電話の受付を減らせている割合', ''],
+            ['キャンセル率', avg('cancel').toFixed(1), '%', '前月 5.9% → 改善', 'up']
+        ].map(k => '<div class="hq-kpi"><div class="lb">' + k[0] + '</div><div class="v">' + k[1] + '<small>' + k[2] + '</small></div><div class="d ' + k[4] + '">' + k[3] + '</div></div>').join('');
+
+        const al = [];
+        list.forEach(s => {
+            if (s.status !== '稼働中') al.push(['🟡', s, '開店準備中。メニュー・ポリシーが未配信です', '一括配信する', 'hq_distribute.html']);
+            else if (!s.policy) al.push(['🔴', s, 'キャンセルポリシーが未設定です（お客様の予約画面で本文が空になります）', '共通ポリシーを配信', 'hq_distribute.html']);
+            if (s.status === '稼働中' && s.cancel >= 7) al.push(['🟠', s, 'キャンセル率が ' + s.cancel + '% とグループ平均より高めです', '予約を見る', 'hq_reservations.html?store=' + s.id]);
+        });
+        alerts.innerHTML = al.length ? al.map(a => '<div class="hq-alert">' + a[0] + ' <b>' + a[1].name + '</b>' + a[2] + '<a class="act link-btn" href="./' + a[4] + '">' + a[3] + ' →</a></div>').join('') : '<div class="muted">確認が必要な店舗はありません</div>';
+
+        const max = Math.max(...list.map(s => s.month), 1);
+        storeTable.querySelector('tbody').innerHTML = list.slice().sort((a, b) => b.month - a.month).map(s => {
+            const t = s.trend, tm = Math.max(...t, 1);
+            const pts = t.map((v, i) => (i * 18) + ',' + (26 - v / tm * 22)).join(' ');
+            const spark = '<svg class="hq-spark" width="112" height="28"><polyline fill="none" stroke="#10B981" stroke-width="2" points="' + pts + '"/></svg>';
+            const setup = s.status !== '稼働中' ? '<span class="hq-badge wait">準備中</span>' :
+                (s.policy && s.menuVer === 'v3' ? '<span class="hq-badge ok">✔ 最新</span>' : '<span class="hq-badge ng">未配信あり</span>');
+            return '<tr><td>' + s.area + '</td>' +
+                '<td><a href="#" onclick="HQ_goStore(\'' + s.id + '\');return false;" style="color:#1E90FF;font-weight:700;text-decoration:underline">' + s.name + '</a><div class="muted" style="font-size:12px">店長 ' + s.manager + '</div></td>' +
+                '<td class="num"><b>' + s.today + '</b> 件</td>' +
+                '<td><div style="display:flex;align-items:center;gap:8px"><div class="hq-bar" style="flex:1"><i style="width:' + (s.month / max * 100) + '%"></i></div><span class="num" style="min-width:52px;text-align:right">' + s.month + '</span></div></td>' +
+                '<td>' + spark + '</td>' +
+                '<td class="num">' + s.web + '%</td>' +
+                '<td class="num" style="color:' + (s.cancel >= 7 ? '#b91c1c' : 'inherit') + '">' + s.cancel + '%</td>' +
+                '<td>' + setup + '</td></tr>';
+        }).join('');
+    }
+    fArea.addEventListener('change', render);
+    render();
+})();
+</script>
+</body>
+</html>

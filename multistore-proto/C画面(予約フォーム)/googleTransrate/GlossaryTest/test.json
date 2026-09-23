@@ -1,0 +1,12 @@
+{
+    "sourceLanguageCode": "ja",
+    "targetLanguageCode": "en",
+    "contents": "\u4eca\u65e5\u306f\u6708\u3067\u3059, \u4eca\u65e5\u306f\u6708\u66dc\u65e5\u3067\u3059, \u30b5\u30fc\u30d3\u30b9\u540d\u306e\u7d39\u4ecb, \u30b5\u30fc\u30d3\u30b9\u540d\u30d7\u30ed\u306f\u512a\u308c\u3066\u3044\u307e\u3059, \u4eca\u6708\u306e\u58f2\u4e0a, \u6708\u984d\u6599\u91d1\u306b\u3064\u3044\u3066",
+    "glossaryConfig": {
+        "glossary": "projects/project-ab359153-73f6-48d2-8fb/locations/us-central1/glossaries/GlossaryTest",
+        "ignoreCase": true,
+        "contextual_translation_enabled": true
+    },
+    "mimeType": "text/plain",
+    "model": "projects/project-ab359153-73f6-48d2-8fb/locations/us-central1/models/general/translation-llm"
+}

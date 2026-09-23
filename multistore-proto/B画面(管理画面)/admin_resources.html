@@ -1,0 +1,994 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+  <script src="../pin_gate.js"></script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>リソース管理｜管理画面モック</title>
+
+    <!-- Material Design Components CSS -->
+    <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Material Design Components JavaScript -->
+    <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
+    <link href="./style.css" rel="stylesheet">
+    <style>
+        .resource-staff-image-preview-wrap {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .resource-staff-image-preview-wrap.is-visible {
+            display: flex;
+        }
+
+        .resource-staff-image-preview {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border: 1px solid #ccc;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .resource-edit-form-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            column-gap: 16px;
+            row-gap: 0px;
+            align-items: start;
+        }
+
+        .resource-edit-name-group {
+            grid-column: 1;
+            grid-row: 1;
+        }
+
+        .resource-edit-type-group {
+            grid-column: 1;
+            grid-row: 2;
+            margin-bottom: 0;
+        }
+
+        .resource-edit-color-group {
+            grid-column: 2;
+            grid-row: 1 / 3;
+        }
+
+        #staffOnlyFields.resource-staff-second-row {
+            display: contents;
+        }
+
+        #staffOnlyFields.resource-staff-second-row.is-hidden {
+            display: none;
+        }
+
+        .resource-staff-image-group {
+            grid-column: 1;
+            grid-row: 3;
+        }
+
+        .resource-staff-image-group > .form-label,
+        .resource-staff-comment-field-head {
+            margin-top: 0;
+            margin-bottom: 0.4em;
+        }
+
+        .resource-staff-comment-group {
+            grid-column: 2;
+            grid-row: 3;
+        }
+
+        #editResourceForm {
+            scrollbar-gutter: stable;
+        }
+
+        .resource-type-specific-fields {
+            position: relative;
+            height: 76px;
+            min-height: 76px;
+        }
+
+        .resource-type-specific-fields > #assignedStaffFields,
+        .resource-type-specific-fields > #equipmentOnlyFields {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        #assignedStaffFields.is-hidden,
+        #equipmentOnlyFields.is-hidden {
+            visibility: hidden;
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        .resource-edit-type-group > .form-label:first-of-type {
+            margin-top: 0;
+        }
+
+        .resource-staff-comment-group .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .resource-staff-comment-field-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 0.8em;
+            margin-bottom: 0.4em;
+        }
+
+        .resource-staff-comment-field-head .form-label {
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+
+        .resource-staff-comment-char-count {
+            flex-shrink: 0;
+            font-size: 0.8rem;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+
+        .resource-staff-comment-char-count.is-limit {
+            color: red;
+            font-weight: bold;
+        }
+
+        @media (max-width: 1023px) {
+            .resource-edit-form-grid {
+                grid-template-columns: 1fr;
+                row-gap: 12px;
+            }
+
+            .resource-edit-name-group,
+            .resource-edit-type-group,
+            .resource-edit-color-group,
+            .resource-staff-image-group,
+            .resource-staff-comment-group {
+                grid-column: 1;
+                grid-row: auto;
+            }
+
+            .resource-edit-type-group {
+                margin-bottom: 20px;
+            }
+
+            .resource-edit-type-group .resource-type-specific-fields {
+                position: static;
+                height: auto;
+                min-height: 0;
+                margin-top: 32px;
+            }
+
+            .resource-edit-type-group .resource-type-specific-fields > #assignedStaffFields,
+            .resource-edit-type-group .resource-type-specific-fields > #equipmentOnlyFields {
+                position: static;
+            }
+
+            #assignedStaffFields.is-hidden,
+            #equipmentOnlyFields.is-hidden {
+                display: none;
+                visibility: visible;
+                pointer-events: auto;
+                opacity: 1;
+            }
+
+            .resource-edit-type-group .resource-type-specific-fields > div > .form-label:first-child,
+            .resource-edit-type-group .resource-type-specific-fields .resource-capacity-field > .form-label:first-child {
+                margin-top: 0;
+            }
+
+            #staffOnlyFields.resource-staff-second-row {
+                display: contents;
+            }
+
+            #staffOnlyFields.resource-staff-second-row.is-hidden {
+                display: none;
+            }
+        }
+    </style>
+    <link href="./sp.css" rel="stylesheet">
+    <script src="./sp.js" defer></script>
+    <!-- 多店舗管理プロトタイプ：店舗切替 -->
+    <link href="./hq.css" rel="stylesheet">
+    <script src="./js/hq_data.js" defer></script>
+    <script src="./js/store_switcher.js" defer></script>
+</head>
+
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <img src="./logo.png" alt="TryServ" style="width: 150px; height: auto;">
+                <div>
+                <span style="font-size:12px;color:#9fb6ff">受付・予約管理システム</span><br />
+                <strong>管理者太郎</strong>
+                </div>
+            </div>
+            <nav class="nav" id="nav">
+                <a href="./admin_index.html" data-target="dashboard">📊 ダッシュボード</a>
+                <a href="./admin_reservations.html" data-target="reservations">📅 受付・予約管理</a>
+                <a href="./admin_customers.html" data-target="customers">👥 顧客管理</a>
+                <a href="./admin_menus.html" data-target="menus">🛠 メニュー管理</a>
+                <a href="./admin_resources.html" data-target="resources" class="active">💺 リソース管理</a>
+                <a href="./admin_users.html" data-target="users">👫 スタッフ管理</a>
+                <a href="./admin_setting.html" data-target="settings">⚙ 基本設定</a>
+                <a href="./admin_usage.html" data-target="usage">💰 利用料金の情報</a>
+                <a href="./admin_operation_log.html">📜 操作履歴</a>
+                <a href="./admin_multilang_manage.html" data-target="multilang">🌐 多言語管理</a>
+                <a href="./admin_google_feed.html" data-target="google-feed">🔗 Googleで予約<span class="nav-indicator-dot">⚠️</span></a>
+            </nav>
+            <div class="foot">© 2025 IFLAG Co, Ltd.</div>
+        </aside>
+        <header class="topbar">
+            <div class="search">
+                <input type="search" placeholder="リソース名 を検索" onchange="filterCustomers(this.value)" />
+            </div>
+            <button type="button" class="regist-btn" onclick="resourceAdd(1, '2')"><i class="material-icons">add</i>
+                新規登録</button>
+            <button type="button" class="btn normal-btn" onclick="groupSetting()">リソースグループの設定</button>
+        </header>
+        <!-- Main -->
+        <main class="main">
+            <!-- リソース管理セクション -->
+            <div class="main-section">
+
+                <div class="main-header">
+                    <h3 class="main-title">💺 リソース管理</h3>
+                    <div class="max-count" style="width: 70%; text-align: right;">登録上限数：99件</div>
+                </div>
+
+
+                <!-- チェアA -->
+                <div class="resource-section">
+                    <div class="search-results-header">
+                        <div class="results-info">
+                            <span class="results-count">全<span id="recordCount">20</span>件</span>
+                        </div>
+                        <div class="pagination-controls">
+                            <select id="pageSizeSelect" name="selPageSizeSelect" class="page-size-select">
+                                <option value="10" selected="">10件</option>
+                                <option value="20">20件</option>
+                                <option value="50">50件</option>
+                                <option value="100">100件</option>
+                            </select>
+                            <div class="pagination">
+                                <button id="firstPage" class="page-btn">«</button>
+                                <button id="prePage" class="page-btn">‹</button>
+                                <span class="page-info">
+                                    <input id="curPage" type="text" value="1" class="page-input">
+                                    /<span id="totalPage">2</span>ページ
+                                </span>
+                                <button id="nextPage" class="page-btn">›</button>
+                                <button id="lastPage" class="page-btn">»</button>
+                            </div>
+                            <span class="page-range">
+                                (<span id="fromRecord">1</span>-<span id="toRecord">10</span>件/全<span
+                                    id="recordCount">20</span>件)
+                            </span>
+                        </div>
+                    </div>
+                    <div class="results-table-container">
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-sort="resourceId" style="width: 10%;">
+                                        ID
+                                    </th>
+                                    <th style="width: 30%;">
+                                        リソース名
+                                    </th>
+                                    <th style="width: 30%;">種別</th>
+                                    <th style="width: 30%;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resourceTableBody">
+                                <tr>
+                                    <td>1</td>
+                                    <td>チェアA</td>
+                                    <td>設備・機器類</td>
+                                    <td class="action-cell">
+                                        <button type="button" class="link-btn" onclick="setShift(1)">シフト設定</button>
+                                        <button type="button" class="link-btn" onclick="resourceEdit(1)">編集</button>
+                                        <button type="button" class="link-btn" onclick="resourceCopy(1)">コピー</button>
+                                    </td>
+                                </tr>
+                                <tr class="table-row-alt">
+                                    <td>2</td>
+                                    <td>チェアB</td>
+                                    <td>設備・機器類</td>
+                                    <td class="action-cell">
+                                        <button type="button" class="link-btn" onclick="setShift(2)">シフト設定</button>
+                                        <button type="button" class="link-btn" onclick="resourceEdit(2)">編集</button>
+                                        <button type="button" class="link-btn" onclick="resourceCopy(2)">コピー</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>7</td>
+                                    <td>チェアC</td>
+                                    <td>設備・機器類</td>
+                                    <td class="action-cell">
+                                        <button type="button" class="link-btn" onclick="setShift(7)">シフト設定</button>
+                                        <button type="button" class="link-btn" onclick="resourceEdit(7)">編集</button>
+                                        <button type="button" class="link-btn" onclick="resourceCopy(7)">コピー</button>
+                                    </td>
+                                </tr>
+                                <tr class="table-row-alt">
+                                    <td>38</td>
+                                    <td>チェアD</td>
+                                    <td>設備・機器類</td>
+                                    <td class="action-cell">
+                                        <button type="button" class="link-btn" onclick="setShift(7)">シフト設定</button>
+                                        <button type="button" class="link-btn" onclick="resourceEdit(38)">編集</button>
+                                        <button type="button" class="link-btn" onclick="resourceCopy(38)">コピー</button>
+                                    </td>
+                                </tr>
+                                <tr class="table-row-alt">
+                                    <td>39</td>
+                                    <td>テストハナコ</td>
+                                    <td>担当者</td>
+                                    <td class="action-cell">
+                                        <button type="button" class="link-btn" onclick="setShift(39)">シフト設定</button>
+                                        <button type="button" class="link-btn" onclick="resourceEdit(39)">編集</button>
+                                        <button type="button" class="link-btn" onclick="resourceCopy(39)">コピー</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+
+
+
+    <script>
+        // リソースフィルタリング機能
+        function filterCustomers(searchValue) {
+            console.log('リソースフィルタリング:', searchValue);
+
+            const tbody = document.getElementById('resourceTableBody');
+            const rows = tbody.querySelectorAll('tr');
+
+            if (!searchValue || searchValue.trim() === '') {
+                // 検索値が空の場合はすべての行を表示
+                rows.forEach(row => {
+                    row.style.display = '';
+                });
+                return;
+            }
+
+            // 検索値に基づいて行をフィルタリング
+            rows.forEach(row => {
+                const resourceNameCell = row.cells[1]; // リソース名の列（2番目）
+
+                if (resourceNameCell) {
+                    const resourceName = resourceNameCell.textContent.toLowerCase();
+                    const searchLower = searchValue.toLowerCase();
+
+                    // 「チェアA」と「チェアB」の行のみを表示
+                    if (resourceName.includes('チェアa') || resourceName.includes('チェアb') ||
+                        (searchLower.includes('チェア') && (resourceName.includes('チェアa') || resourceName.includes('チェアb')))) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        function setResourceModalTitleMode(isRegister) {
+            const iconEl = document.getElementById('editResourceModalTitleIcon');
+            if (!iconEl) return;
+            if (isRegister) {
+                iconEl.textContent = '📝';
+            } else {
+                iconEl.textContent = '✏️';
+            }
+        }
+
+        // リソース編集（新規登録と同じ画面に遷移）
+        function resourceEdit(resourceId) {
+
+            // モーダルを表示
+            showEditResourceModal(resourceId);
+        }
+
+        // リソースコピー
+        function resourceCopy(resourceId) {
+
+            // コピー元のリソース情報を取得（実際の実装ではAPIから取得）
+            const sourceResourceData = getResourceDataById(resourceId);
+
+            // 新規登録モーダルを表示（コピー元データ付き）
+            showNewResourceModalWithCopy(sourceResourceData);
+        }
+
+        // リソース編集モーダルを表示
+        function showEditResourceModal(resourceId) {
+            fillResourceForm(getResourceDataById(resourceId));
+
+            // カラーパレットの初期選択を解除
+            document.querySelectorAll('.resource-color-option').forEach(opt => {
+                opt.style.border = '2px solid transparent';
+            });
+            // IDフィールドを非表示にする
+            document.getElementById('editResourceId').style.display = 'block';
+
+            // モーダルタイトルを変更
+            setResourceModalTitleMode(false);
+            document.getElementById('editResourceTitle').textContent = 'リソース編集';
+
+            // 保存ボタンのテキストを編集用に設定
+            document.querySelector('#editResourceModal .modal-btn-save').textContent = '保存';
+
+            // 削除ボタンを表示
+            document.querySelector('#editResourceModal .modal-btn-delete').style.display = 'inline-block';
+
+            document.getElementById('editResourceModal').style.display = 'flex';
+            document.getElementById('editResourceModal').classList.add('show');
+        }
+
+        // リソースデータを取得（サンプルデータ）
+        const RESOURCE_COMMENT_MAX_LENGTH = 64;
+
+        function updateResourceCommentCharCount() {
+            const textarea = document.getElementById('editResourceComment');
+            const counter = document.getElementById('editResourceCommentCount');
+            if (!textarea || !counter) return;
+
+            const length = textarea.value.length;
+            counter.textContent = `${length}/${RESOURCE_COMMENT_MAX_LENGTH}文字`;
+            counter.classList.toggle('is-limit', length >= RESOURCE_COMMENT_MAX_LENGTH);
+        }
+
+        function resetResourceImageField() {
+            const imageInput = document.getElementById('editResourceImage');
+            const imagePreview = document.getElementById('editResourceImagePreview');
+            const imagePreviewWrap = document.getElementById('editResourceImagePreviewWrap');
+            if (imageInput) {
+                imageInput.value = '';
+            }
+            if (imagePreview) {
+                imagePreview.src = '';
+            }
+            if (imagePreviewWrap) {
+                imagePreviewWrap.classList.remove('is-visible');
+            }
+        }
+
+        function setResourceImagePreview(imageUrl) {
+            const imagePreview = document.getElementById('editResourceImagePreview');
+            const imagePreviewWrap = document.getElementById('editResourceImagePreviewWrap');
+            const imageInput = document.getElementById('editResourceImage');
+            if (!imagePreview || !imagePreviewWrap) return;
+
+            if (imageUrl) {
+                imagePreview.src = imageUrl;
+                imagePreviewWrap.classList.add('is-visible');
+            } else {
+                imagePreview.src = '';
+                imagePreviewWrap.classList.remove('is-visible');
+            }
+            if (imageInput) {
+                imageInput.value = '';
+            }
+        }
+
+        function setupResourceImagePreview() {
+            const imageInput = document.getElementById('editResourceImage');
+            const imagePreview = document.getElementById('editResourceImagePreview');
+            const imagePreviewWrap = document.getElementById('editResourceImagePreviewWrap');
+            const deleteImageBtn = document.getElementById('editResourceImageDeleteBtn');
+            if (!imageInput || !imagePreview || !imagePreviewWrap || !deleteImageBtn) return;
+
+            imageInput.addEventListener('change', function (e) {
+                const file = e.target.files[0];
+                if (!file) {
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    imagePreview.src = event.target.result;
+                    imagePreviewWrap.classList.add('is-visible');
+                };
+                reader.readAsDataURL(file);
+            });
+
+            deleteImageBtn.addEventListener('click', function () {
+                resetResourceImageField();
+            });
+        }
+
+        function getResourceDataById(resourceId) {
+            const resourceData = {
+                1: {name: 'チェアA', type: 'equipment', assignedStaff: '', comment: '', imageUrl: ''},
+                2: {name: 'チェアB', type: 'equipment', assignedStaff: '', comment: '', imageUrl: ''},
+                7: {name: 'チェアC', type: 'equipment', assignedStaff: '', comment: '', imageUrl: ''},
+                38: {name: 'チェアD', type: 'equipment', assignedStaff: '', comment: '', imageUrl: ''},
+                39: {
+                    name: 'テストハナコ',
+                    type: 'staff',
+                    assignedStaff: 'test_hanako',
+                    comment: '丁寧にご案内いたします。',
+                    imageUrl: ''
+                }
+            };
+            return resourceData[resourceId] || {name: '', type: 'staff', assignedStaff: '', comment: '', imageUrl: ''};
+        }
+
+        function resetResourceStaffFields() {
+            document.getElementById('editResourceComment').value = '';
+            updateResourceCommentCharCount();
+            resetResourceImageField();
+        }
+
+        function fillResourceForm(resourceData) {
+            document.getElementById('editResourceName').value = resourceData.name || '';
+            document.getElementById('editAssignedStaff').value = resourceData.assignedStaff || '';
+            document.getElementById('editResourceTypeStaff').checked = resourceData.type !== 'equipment';
+            document.getElementById('editResourceTypeEquipment').checked = resourceData.type === 'equipment';
+            document.getElementById('editResourceComment').value = resourceData.comment || '';
+            updateResourceCommentCharCount();
+            setResourceImagePreview(resourceData.imageUrl || '');
+            if (typeof toggleResourceTypeFields === 'function') {
+                toggleResourceTypeFields();
+            }
+        }
+
+        // 新規登録モーダルを表示
+        function showNewResourceModal() {
+            fillResourceForm({name: '', type: 'staff', assignedStaff: '', comment: '', imageUrl: ''});
+            document.getElementById('editResourceTypeStaff').checked = true;
+            document.getElementById('editResourceTypeEquipment').checked = false;
+            if (typeof toggleResourceTypeFields === 'function') {
+                toggleResourceTypeFields();
+            }
+            // カラーパレットの初期選択を解除
+            document.querySelectorAll('.resource-color-option').forEach(opt => {
+                opt.style.border = '2px solid transparent';
+            });
+            // IDフィールドを非表示にする
+            document.getElementById('editResourceId').style.display = 'none';
+
+            // モーダルタイトルを変更
+            setResourceModalTitleMode(true);
+            document.getElementById('editResourceTitle').textContent = 'リソース登録';
+
+            // 保存ボタンのテキストを新規登録用に設定
+            document.querySelector('#editResourceModal .modal-btn-save').textContent = '登録';
+
+            // 削除ボタンを非表示
+            document.querySelector('#editResourceModal .modal-btn-delete').style.display = 'none';
+
+            document.getElementById('editResourceModal').style.display = 'flex';
+            document.getElementById('editResourceModal').classList.add('show');
+        }
+
+        // コピー元データ付きの新規登録モーダルを表示
+        function showNewResourceModalWithCopy(sourceData) {
+            fillResourceForm({
+                name: (sourceData.name || '') + ' (コピー)',
+                type: sourceData.type || 'staff',
+                assignedStaff: sourceData.assignedStaff || '',
+                comment: sourceData.comment || '',
+                imageUrl: sourceData.imageUrl || ''
+            });
+            // カラーパレットの初期選択を解除
+            document.querySelectorAll('.resource-color-option').forEach(opt => {
+                opt.style.border = '2px solid transparent';
+            });
+
+            // モーダルタイトルをコピー用に設定
+            setResourceModalTitleMode(true);
+            document.getElementById('editResourceTitle').textContent = 'リソース登録';
+            document.getElementById('editResourceId').style.display = 'none';
+
+            // 保存ボタンのテキストを登録用に設定
+            document.querySelector('#editResourceModal .modal-btn-save').textContent = '登録';
+
+            // 削除ボタンを非表示
+            document.querySelector('#editResourceModal .modal-btn-delete').style.display = 'none';
+
+            document.getElementById('editResourceModal').style.display = 'flex';
+            document.getElementById('editResourceModal').classList.add('show');
+        }
+
+        // リソース編集モーダルを閉じる
+        function closeEditResourceModal() {
+            document.getElementById('editResourceModal').style.display = 'none';
+            document.getElementById('editResourceModal').classList.remove('show');
+        }
+
+        // リソース編集を保存
+        function saveResourceEdit() {
+            const resourceName = document.getElementById('editResourceName').value;
+            const assignedStaff = document.getElementById('editAssignedStaff').value;
+            const resourceType = document.getElementById('editResourceTypeEquipment').checked ? 'equipment' : 'staff';
+            const resourceComment = document.getElementById('editResourceComment').value;
+            const resourceImageInput = document.getElementById('editResourceImage');
+            const resourceImageFile = resourceImageInput && resourceImageInput.files[0] ? resourceImageInput.files[0] : null;
+            const modalTitle = document.querySelector('#editResourceModal .modal-title').textContent;
+
+            // バリデーション
+            if (!resourceName) {
+                alert('必須項目を入力してください。');
+                return;
+            }
+
+            // 新規登録か編集かを判定
+            const isNewResource = modalTitle.includes('新規');
+
+
+            // ここで実際の保存処理を行う
+            // 例: APIに送信、ローカルストレージに保存など
+
+
+            closeEditResourceModal();
+
+            // テーブルを更新（実際の実装では、更新されたデータを反映）
+            location.reload();
+        }
+
+        // リソース削除
+        function deleteResource() {
+            const resourceName = document.getElementById('editResourceName').value;
+
+            if (confirm(`リソース「${resourceName}」を削除してもよろしいですか？\nこの操作は取り消せません。`)) {
+
+                // ここで実際の削除処理を行う
+                // 例: APIに送信、ローカルストレージから削除など
+
+                closeEditResourceModal();
+
+                // テーブルを更新（実際の実装では、削除された行を除去）
+                location.reload();
+            }
+        }
+
+        // メニュー編集を保存
+
+
+        // メニュー追加（既存の関数を更新）
+        function resourceAdd(resourceId, type) {
+            // 新規登録モーダルを表示
+            showNewResourceModal();
+        }
+
+
+        // シフト設定
+        function setShift(resourceId) {
+            console.log('シフト設定:', {resourceId});
+            // シフト設定画面に遷移
+            window.location.href = './admin_shift.html?id=' + resourceId;
+        }
+
+        // モーダル外クリックでは閉じない（×ボタン・閉じるボタンのみ）
+
+        // リソースグループの設定
+        function groupSetting() {
+            window.location.href = './admin_resourceGroup.html';
+        }
+    </script>
+
+    <!-- リソース編集モーダル -->
+    <div class="popup-overlay" id="editResourceModal" style="display: none;">
+        <div class="normal-modal" id="editResourceModalContent">
+            <div class="modal-header">
+                <h3 class="modal-title" style="display: flex; align-items: center; gap: 4px;">
+                    <span id="editResourceModalTitleIcon" class="modal-title-icon" aria-hidden="true">✏️</span>
+                    <span id="editResourceTitle">リソース編集</span>
+                    <span id="editResourceId">（ID：112）</span>
+                </h3>
+                <button class="modal-close" onclick="closeEditResourceModal()">×</button>
+            </div>
+
+            <form id="editResourceForm">
+            <div class="resource-edit-form-grid">
+                <div class="form-group resource-edit-name-group">
+                    <label class="form-label" for="editResourceName">リソース名 <span class="required">*</span></label>
+                    <input type="text" class="form-input" id="editResourceName" required>
+                </div>
+                <div class="form-group resource-edit-color-group">
+                    <label class="form-label" for="editResourceColor">表示色 <span class="required">*</span></label>
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <div id="resourceColorPalette" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 10px;">
+                            <!-- 最終的に指定された15色のカラーパレット -->
+                            <!-- 最終的に指定された15色のカラーパレット -->
+                            <div class="resource-color-option" data-color="#1976D2" style="width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease;" title="ブルー"></div>
+                            <div class="resource-color-option" data-color="#009688" style="width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease;" title="ターコイズ"></div>
+                            <div class="resource-color-option" data-color="#009D5B" style="width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease;" title="エメラルド"></div>
+                            <div class="resource-color-option" data-color="#607D8B" style="width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease;" title="ブルーグレー"></div>
+                            <div class="resource-color-option" data-color="#8D7EBF" style="width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease;" title="ディープパープル"></div>
+                            <div class="resource-color-option" data-color="#342071" style="width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease;" title="ダークパープル"></div>
+                            <div class="resource-color-option" data-color="#E91E63" style="width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease;" title="ピンク"></div>
+                            <div class="resource-color-option" data-color="#A74E78" style="width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease;" title="ダークピンク"></div>
+                            <div class="resource-color-option" data-color="#F44336" style="width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease;" title="レッド"></div>
+                            <div class="resource-color-option" data-color="#FF5722" style="width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease;" title="ディープオレンジ"></div>
+                            <div class="resource-color-option" data-color="#E89046" style="width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease;" title="オレンジ"></div>
+                            <div class="resource-color-option" data-color="#C08E26" style="width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease;" title="ゴールド"></div>
+                            <div class="resource-color-option" data-color="#7A3E11" style="width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease;" title="ブラウン"></div>
+                            <div class="resource-color-option" data-color="#374046" style="width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease;" title="ダークグレー"></div>
+                            <div class="resource-color-option" data-color="#000000" style="width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease;" title="黒"></div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+                            <div id="resourceColorPreview"
+                                style="width: 50px; height: 40px; border: 1px solid #ccc; border-radius: 4px; background-color: #1976D2;">
+                            </div>
+                        </div>
+                        <input type="hidden" id="editResourceColorCode" value="#1976D2">
+                    </div>
+                    <small class="form-help">リソースの表示色を選択してください</small>
+                </div>
+                <div class="form-group resource-edit-type-group">
+                    <label class="form-label">種別 <span class="required">*</span></label>
+                    <div style="display: flex; gap: 20px; margin-top: 8px;">
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                            <input type="radio" name="editResourceType" value="staff" id="editResourceTypeStaff"
+                                checked>
+                            <span>担当者</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                            <input type="radio" name="editResourceType" value="equipment"
+                                id="editResourceTypeEquipment">
+                            <span>設備・機器類</span>
+                        </label>
+                    </div>
+                    <div id="resourceTypeSpecificFields" class="resource-type-specific-fields">
+                        <div id="assignedStaffFields">
+                            <label class="form-label" for="editAssignedStaff">担当者</label>
+                            <select class="form-input" id="editAssignedStaff">
+                                <option value="">選択してください</option>
+                                <option value="test_hanako">テスト花子</option>
+                                <option value="test_taro">テスト太郎</option>
+                                <option value="yamada_test">山田てすと</option>
+                                <option value="sato_test">佐藤テスト</option>
+                            </select>
+                        </div>
+                        <div id="equipmentOnlyFields" class="is-hidden">
+                            <div class="resource-capacity-row" style="display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start;">
+                                <div class="resource-capacity-field">
+                                    <label class="form-label" for="editResourceCapacity">利用可能人数 <span class="required">*</span></label>
+                                    <div style="display: flex; align-items: center; gap: 5px;">
+                                        <input type="number" class="form-input" id="editResourceCapacity" min="1" placeholder="4" style="width: 120px;">
+                                        <span>人</span>
+                                    </div>
+                                </div>
+                                <div class="resource-capacity-field">
+                                    <label class="form-label" for="editResourceMinReception">最少受付人数 <span class="required">*</span></label>
+                                    <div style="display: flex; align-items: center; gap: 5px;">
+                                        <input type="number" class="form-input" id="editResourceMinReception" min="1" placeholder="1" style="width: 120px;">
+                                        <span>人</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="staffOnlyFields" class="resource-staff-second-row">
+                <div class="form-group resource-staff-image-group">
+                    <label class="form-label" for="editResourceImage">画像</label>
+                    <div id="editResourceImagePreviewWrap" class="resource-staff-image-preview-wrap">
+                        <img id="editResourceImagePreview" class="resource-staff-image-preview" src="" alt="画像プレビュー">
+                        <button type="button" class="modal-btn modal-btn-delete" id="editResourceImageDeleteBtn" style="padding: 6px 12px; font-size: 0.85rem;">画像を削除</button>
+                    </div>
+                    <input type="file" class="form-input" id="editResourceImage" accept="image/jpeg,image/png,image/gif">
+                    <small class="form-help">JPEG、PNG、GIF形式の画像ファイルを選択してください</small>
+                </div>
+                <div class="form-group resource-staff-comment-group">
+                    <div class="resource-staff-comment-field-head">
+                        <label class="form-label" for="editResourceComment">コメント</label>
+                        <span class="resource-staff-comment-char-count" id="editResourceCommentCount" aria-live="polite">0/64文字</span>
+                    </div>
+                    <textarea class="form-textarea" id="editResourceComment" rows="4" maxlength="64" placeholder="受付・予約ページの担当者選択に表示するコメントを入力してください"></textarea>
+                </div>
+                </div>
+            </div>
+            </form>
+
+            <div class="modal-actions">
+                <button type="button" class="modal-btn modal-btn-save" onclick="saveResourceEdit()">保存</button>
+                <button type="button" class="modal-btn modal-btn-delete" onclick="deleteResource()">削除</button>
+                <button type="button" class="modal-btn modal-btn-cancel" onclick="closeEditResourceModal()">閉じる</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // リソース登録ポップアップの開閉機能
+        function openResourcePopup() {
+            document.getElementById('resourcePopupOverlay').style.display = 'flex';
+        }
+
+        function closeResourcePopup() {
+            document.getElementById('resourcePopupOverlay').style.display = 'none';
+            // フォームをリセット
+            document.getElementById('resourceRegistrationForm').reset();
+        }
+
+        function saveResourceFromPopup() {
+            const form = document.getElementById('resourceRegistrationForm');
+            const formData = new FormData(form);
+            const resourceData = {
+                resourceName: formData.get('resourceName'),
+                resourceDescription: formData.get('resourceDescription'),
+                webReception: formData.get('webReception'),
+                receptionDisplay: formData.get('receptionDisplay'),
+                webReceptionCategory: formData.get('webReceptionCategory'),
+                assignedStaff: formData.get('assignedStaff'),
+                startDate: formData.get('startDate'),
+                endDate: formData.get('endDate')
+            };
+
+            console.log('リソース登録データ:', resourceData);
+
+            // バリデーション
+            if (!resourceData.resourceName.trim()) {
+                alert('リソース名は必須です。');
+                return;
+            }
+
+            if (resourceData.startDate && resourceData.endDate && resourceData.startDate > resourceData.endDate) {
+                alert('適用期間の開始日は終了日より前の日付を選択してください。');
+                return;
+            }
+
+            // 登録処理（実際の実装では、サーバーに送信）
+            closeResourcePopup();
+
+            // ページをリロードして新しいリソースを表示
+            location.reload();
+        }
+
+        // ラジオボタンの切り替え機能
+        document.addEventListener('DOMContentLoaded', function () {
+            // editResourceModalのラジオボタン切り替え
+            const editStaffRadio = document.getElementById('editResourceTypeStaff');
+            const editEquipmentRadio = document.getElementById('editResourceTypeEquipment');
+            const editStaffSelect = document.getElementById('editAssignedStaff');
+
+            const equipmentOnlyFields = document.getElementById('equipmentOnlyFields');
+            const assignedStaffFields = document.getElementById('assignedStaffFields');
+            const staffOnlyFields = document.getElementById('staffOnlyFields');
+
+            function toggleResourceTypeFields() {
+                const isEquipment = editEquipmentRadio && editEquipmentRadio.checked;
+                if (equipmentOnlyFields) {
+                    equipmentOnlyFields.classList.toggle('is-hidden', !isEquipment);
+                }
+                if (assignedStaffFields) {
+                    assignedStaffFields.classList.toggle('is-hidden', isEquipment);
+                }
+                if (staffOnlyFields) {
+                    staffOnlyFields.classList.toggle('is-hidden', isEquipment);
+                }
+                if (editStaffSelect) {
+                    if (isEquipment) {
+                        editStaffSelect.value = '';
+                        editStaffSelect.disabled = true;
+                    } else {
+                        editStaffSelect.disabled = false;
+                    }
+                }
+                if (isEquipment) {
+                    resetResourceStaffFields();
+                }
+            }
+
+            window.toggleResourceTypeFields = toggleResourceTypeFields;
+
+            if (editStaffRadio && editEquipmentRadio) {
+                editStaffRadio.addEventListener('change', function () {
+                    if (this.checked) {
+                        toggleResourceTypeFields();
+                    }
+                });
+
+                editEquipmentRadio.addEventListener('change', function () {
+                    if (this.checked) {
+                        toggleResourceTypeFields();
+                    }
+                });
+
+                toggleResourceTypeFields();
+            }
+
+            setupResourceImagePreview();
+            document.getElementById('editResourceComment').addEventListener('input', updateResourceCommentCharCount);
+
+            // resourcePopupOverlayのラジオボタン切り替え
+            const popupStaffRadio = document.getElementById('resourceTypeStaff');
+            const popupEquipmentRadio = document.getElementById('resourceTypeEquipment');
+            const popupStaffSelect = document.getElementById('assignedStaff');
+
+            if (popupStaffRadio && popupEquipmentRadio && popupStaffSelect) {
+                popupStaffRadio.addEventListener('change', function () {
+                    if (this.checked) {
+                        popupStaffSelect.disabled = false;
+                        popupStaffSelect.style.opacity = '1';
+                    }
+                });
+
+                popupEquipmentRadio.addEventListener('change', function () {
+                    if (this.checked) {
+                        popupStaffSelect.disabled = true;
+                        popupStaffSelect.style.opacity = '0.5';
+                        popupStaffSelect.value = ''; // 値をクリア
+                    }
+                });
+            }
+        });
+
+        // ポップアップ外クリックでは閉じない（×ボタン・閉じるボタンのみ）
+
+        // カラーパレットとカラーコード入力枠の連動
+        document.addEventListener('DOMContentLoaded', function () {
+            const colorCodeInput = document.getElementById('editResourceColorCode');
+            const colorPreview = document.getElementById('resourceColorPreview');
+            const colorOptions = document.querySelectorAll('.resource-color-option');
+
+            // カラーパレットの色を設定
+            colorOptions.forEach(option => {
+                const color = option.getAttribute('data-color');
+                option.style.backgroundColor = color;
+
+                // クリックイベント
+                option.addEventListener('click', function() {
+                    // 他の選択を解除
+                    colorOptions.forEach(opt => opt.style.border = '2px solid transparent');
+
+                    // 選択された色をハイライト
+                    this.style.border = '2px solid #333';
+
+                    // カラーコードとプレビューを更新
+                    colorCodeInput.value = color;
+                    colorPreview.style.backgroundColor = color;
+                });
+
+                // ホバー効果
+                option.addEventListener('mouseenter', function() {
+                    if (this.style.border !== '2px solid #333') {
+                        this.style.border = '2px solid #ccc';
+                    }
+                });
+
+                option.addEventListener('mouseleave', function() {
+                    if (this.style.border !== '2px solid #333') {
+                        this.style.border = '2px solid transparent';
+                    }
+                });
+            });
+
+            // デフォルト色（ブルー）を選択
+            const defaultColor = '#1976D2';
+            colorOptions.forEach(opt => opt.style.border = '2px solid transparent');
+            const defaultOption = document.querySelector('.resource-color-option[data-color="' + defaultColor + '"]');
+            if (defaultOption) {
+                defaultOption.style.border = '2px solid #333';
+            }
+            if (colorCodeInput) {
+                colorCodeInput.value = defaultColor;
+            }
+            if (colorPreview) {
+                colorPreview.style.backgroundColor = defaultColor;
+            }
+
+        });
+
+    </script>
+</body>
+
+</html>

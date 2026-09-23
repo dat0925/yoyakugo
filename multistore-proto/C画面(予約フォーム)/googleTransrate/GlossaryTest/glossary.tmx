@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8'?>
+<tmx version="1.4">
+  <header segtype="sentence" adminlang="en" srclang="ja" datatype="PlainText"/>
+  <body>
+    <tu>
+      <tuv xml:lang="ja">
+        <seg>月</seg>
+      </tuv>
+      <tuv xml:lang="en">
+        <seg>Mon</seg>
+      </tuv>
+    </tu>
+    <tu>
+      <tuv xml:lang="ja">
+        <seg>月曜日</seg>
+      </tuv>
+      <tuv xml:lang="en">
+        <seg>Monday</seg>
+      </tuv>
+    </tu>
+    <tu>
+      <tuv xml:lang="ja">
+        <seg>サービス名</seg>
+      </tuv>
+      <tuv xml:lang="en">
+        <seg>サービス名</seg>
+      </tuv>
+    </tu>
+  </body>
+</tmx>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <script src="../pin_gate.js"></script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>請求・利用料金｜本部コンソール（多店舗管理プロトタイプ）</title>
+    <link href="./style.css" rel="stylesheet">
+    <link href="./sp.css" rel="stylesheet">
+    <link href="./hq.css" rel="stylesheet">
+</head>
+<body>
+<div class="app">
+    <aside id="hqSide"></aside>
+    <header id="hqTop"></header>
+    <main class="main">
+        <div class="hq-head">
+            <div>
+                <h2>💰 請求・利用料金</h2>
+                <div class="sub">請求は本部に1本でまとめ、店舗ごとの内訳を見られます。※金額は料金案（税抜）です。</div>
+            </div>
+        </div>
+        <div class="hq-kpis" id="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
+        <div class="hq-table-wrap">
+            <table class="hq-table" id="tbl"><thead><tr><th>項目</th><th>対象</th><th>数量</th><th>単価（税抜）</th><th>金額（税抜）</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="card" style="font-size:13px">
+            <b>料金の段階（店舗単価）</b>
+            <div class="hq-table-wrap" style="margin-top:8px"><table class="hq-table" id="tiers"><thead><tr><th>店舗数</th><th>店舗単価／月</th><th>本部管理料／月</th></tr></thead><tbody></tbody></table></div>
+        </div>
+    </main>
+</div>
+<script src="./js/hq_data.js"></script>
+<script src="./js/hq_shell.js"></script>
+<script>
+(function () {
+    const live = HQ.stores.filter(s => s.status === '稼働中');
+    const n = HQ.stores.length, unit = HQ.unitPrice(n);
+    const storeTotal = unit * n, total = storeTotal + HQ.price.hqMonthly;
+    kpis.innerHTML = [['2026年9月分 ご請求（税抜）', HQ.yen(total), '口座振替 10/6 引落'], ['本部管理料', HQ.yen(HQ.price.hqMonthly), '全店ダッシュボード・一括配信・権限'], ['店舗利用料', HQ.yen(storeTotal), n + '店舗 × ' + HQ.yen(unit)]]
+        .map(k => '<div class="hq-kpi"><div class="lb">' + k[0] + '</div><div class="v" style="font-size:24px">' + k[1] + '</div><div class="d">' + k[2] + '</div></div>').join('');
+    tbl.querySelector('tbody').innerHTML =
+        '<tr><td><b>予約GO 本部管理料</b></td><td>' + HQ.group.name + '</td><td class="num">1</td><td class="num">' + HQ.yen(HQ.price.hqMonthly) + '</td><td class="num">' + HQ.yen(HQ.price.hqMonthly) + '</td></tr>' +
+        HQ.stores.map(s => '<tr><td>予約GO 店舗利用料</td><td>' + s.area + '｜' + s.name + (s.status !== '稼働中' ? ' <span class="hq-badge wait">準備中</span>' : '') + '</td><td class="num">1</td><td class="num">' + HQ.yen(unit) + '</td><td class="num">' + HQ.yen(unit) + '</td></tr>').join('') +
+        '<tr><td colspan="4" style="text-align:right"><b>合計（税抜）</b></td><td class="num"><b>' + HQ.yen(total) + '</b></td></tr>';
+    tiers.querySelector('tbody').innerHTML = HQ.price.tiers.map(t => '<tr' + (n >= t.from && n <= t.to ? ' style="background:#e6fff5"' : '') + '><td>' + t.from + '〜' + t.to + ' 店舗</td><td class="num">' + HQ.yen(t.unit) + '</td><td class="num">' + HQ.yen(HQ.price.hqMonthly) + '</td></tr>').join('');
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!doctype html>
+<html class="no-js" lang="pt">
+  <head>
+  <script src="../pin_gate.js"></script>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="canonical" href="http://www./">
+    <title></title>
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta property="og:url" content="http://www./">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="">
+    <meta property="og:title" content="">
+    <meta property="og:site_name" content="">
+    <meta property="og:description" content="">
+    <link href="./assets/css/main.css" rel="stylesheet">
+    <script src="./assets/js/vendor/jquery.min.js"></script>
+  </head>
+  <body>
+    <header>
+      <div class="primary_header">
+        <div class="container">
+          <div class="row">
+            <h1 class="title"> ●● Clínica de Osteopatia </h1>
+            <div class="flow">
+              <ul>
+                <li>Detalhes</li>
+                <li class="active">Confirmar</li>
+                <li>Concluir</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main>
+      <form action="./complete_pt.html" method="post">
+        <section class="confirm01">
+          <div class="container gutters">
+            <div class="text-center text-xlarge">O seu check-in / reserva ainda não está concluído.</div>
+            <div class="text-center text-large">Reveja as informações introduzidas e clique em "Concluir check-in / reserva" se estiver tudo correto.</div>
+            <div class="box">
+              <ul>
+                <li>
+                  <label>
+                    <span class="title_txt">
+                      <span>Detalhes de check-in / reserva</span>
+                    </span>
+                    <div class="table-container">
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Número de convidados</div>
+                        <div class="cell cell-2">1</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Serviço</div>
+                        <div class="cell cell-2">
+                          <div class="confirm_menu_name">Nome do menu Nome do menu</div>
+                          <ul class="confirm_option_list">
+                            <li>+Nome do menu de opções Nome do menu de opções</li>
+                            <li>+Nome do menu de opções Nome do menu de opções</li>
+                          </ul>
+                        </div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Data e hora</div>
+                        <div class="cell cell-2">1 de dezembro de 2025 (seg) 10:30</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Profissional</div>
+                        <div class="cell cell-2">店舗花子</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Preço (com impostos)</div>
+                        <div class="cell cell-2">3,000 JPY</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Tempo necessário</div>
+                        <div class="cell cell-2">45 minutos</div>
+                      </div>
+                    </div>
+                  </label>
+                </li>
+                <li>
+                  <label>
+                    <span class="title_txt">
+                      <span>Informações da reserva</span>
+                    </span>
+                    <div class="table-container">
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Nome</div>
+                        <div class="cell cell-2">Yamada Taro</div>
+                      </div>
+                      <div class="row" id="furigana_row">
+                        <div class="cell cell-1 text-right">Nome (Furigana)</div>
+                        <div class="cell cell-2"></div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Número de telefone</div>
+                        <div class="cell cell-2">03-0000-1111</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Endereço de e-mail</div>
+                        <div class="cell cell-2">test@iflag.co.jp</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Comentários</div>
+                        <div class="cell cell-2">Gostaria de ser atendida por uma profissional mulher.</div>
+                      </div>
+                    </div>
+                  </label>
+                </li>
+                <li>
+                  <label>
+                    <span class="title_txt">
+                      <span>Verificação de e-mail</span>
+                    </span>
+                    <div class="table-container">
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Código PIN</div>
+                        <div class="cell cell-2">
+                          <div class="pin_input_wrapper">
+                            <input type="text" class="input_pin" id="pinCode" placeholder="" maxlength="6" pattern="\d{6}">
+                            <div class="pin_progress" id="pinTimer">
+                              <div class="progress_header">
+                                <div class="progress_label">Válido até</div>
+                                <div class="progress_text" id="progressText">01:00</div>
+                              </div>
+                              <div class="progress_bar">
+                                <div class="progress_fill" id="progressFill"></div>
+                              </div>
+                              <div class="resend_link" id="resendLink" style="display: none;">
+                                <a href="./index_pt.html">Reenviar código PIN</a>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="pin_code_notice">
+                            <p>Foi enviado um e-mail de verificação para test@iflag.co.jp.</p>
+                            <p>Introduza o código PIN do e-mail.</p>
+                            <p class="attention_point">Se não receber o e-mail, verifique a pasta de spam<br/>ou confirme o endereço de e-mail e envie novamente.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                </li>
+              </ul>
+              <div class="input_wrap">
+                <div class="back_wrap"><a href="./index_pt.html">Alterar detalhes de check-in / reserva</a></div>
+                <p class="submit_wrap">
+                  <input type="submit" value="Concluir check-in / reserva">
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </form>
+      <div class="foot">© 2025 IFLAG Co, Ltd.</div>
+    </main>
+
+    <script src="./assets/js/main.js"></script>
+  </body>
+</html>

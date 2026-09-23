@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <script src="../pin_gate.js"></script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>店舗管理｜本部コンソール（多店舗管理プロトタイプ）</title>
+    <link href="./style.css" rel="stylesheet">
+    <link href="./sp.css" rel="stylesheet">
+    <link href="./hq.css" rel="stylesheet">
+</head>
+<body>
+<div class="app">
+    <aside id="hqSide"></aside>
+    <header id="hqTop"></header>
+    <main class="main">
+        <div class="hq-head">
+            <div>
+                <h2>🏬 店舗管理</h2>
+                <div class="sub">店舗の追加は本部だけで完結します。追加した店舗には「標準メニュー」「共通ポリシー」を最初から配信できます。</div>
+            </div>
+            <button class="regist-btn" onclick="openAdd()">＋ 店舗を追加</button>
+        </div>
+        <div class="card" style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
+            <div><div class="muted" style="font-size:12px">契約プラン</div><b id="plan"></b></div>
+            <div><div class="muted" style="font-size:12px">登録店舗</div><b id="used"></b></div>
+            <div style="flex:1;min-width:200px"><div class="hq-bar" style="height:12px"><i id="usedBar"></i></div></div>
+            <div><div class="muted" style="font-size:12px">現在の店舗単価（税抜）</div><b id="unit"></b></div>
+        </div>
+        <div class="hq-table-wrap">
+            <table class="hq-table" id="tbl">
+                <thead><tr><th>エリア</th><th>店舗名</th><th>住所・電話</th><th>店長</th><th>お客様の予約URL</th><th>状態</th><th>操作</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="hq-next">🔗 各店舗の予約URL（https://ssl.yoyakugo-system.com/&lt;契約者ID&gt;/…）は<b>今のまま変わりません</b>。グループ全体の入口として「グループ予約ページ」のURLが1本増えます。</div>
+    </main>
+</div>
+
+<div class="hq-modal-bg" id="addModal">
+    <div class="hq-modal">
+        <h3>＋ 店舗を追加</h3>
+        <div class="hq-form">
+            <label>店舗名 *</label><input id="nName" value="所沢院">
+            <label>エリア *</label><select id="nArea"></select>
+            <label>住所</label><input value="埼玉県所沢市9-9-9">
+            <label>店長</label><select><option>（あとで設定）</option><option>中村 八重</option></select>
+            <label>初期配信</label>
+            <div style="display:grid;gap:6px;font-size:13px">
+                <label><input type="checkbox" checked> 標準メニュー v3</label>
+                <label><input type="checkbox" checked> グループ共通キャンセルポリシー</label>
+                <label><input type="checkbox" checked> 営業時間テンプレート</label>
+            </div>
+        </div>
+        <div class="muted" style="font-size:12px;margin-top:10px" id="feeNote"></div>
+        <div class="acts">
+            <button class="btn ghost" onclick="addModal.classList.remove('open')">閉じる</button>
+            <button class="btn" onclick="doAdd()">追加する</button>
+        </div>
+    </div>
+</div>
+
+<script src="./js/hq_data.js"></script>
+<script src="./js/hq_shell.js"></script>
+<script>
+(function () {
+    function head() {
+        const n = HQ.stores.length;
+        plan.textContent = HQ.group.plan;
+        used.textContent = n + ' / ' + HQ.group.maxStores + ' 店舗';
+        usedBar.style.width = (n / HQ.group.maxStores * 100) + '%';
+        unit.textContent = HQ.yen(HQ.unitPrice(n)) + ' ／ 店舗・月';
+    }
+    function render() {
+        tbl.querySelector('tbody').innerHTML = HQ.stores.map(s =>
+            '<tr><td>' + s.area + '</td><td><b>' + s.name + '</b></td>' +
+            '<td style="font-size:13px">' + s.addr + '<br><span class="muted">' + s.tel + '</span></td>' +
+            '<td>' + s.manager + '</td>' +
+            '<td style="font-size:12px;color:#1E90FF">…/' + s.code + '/tryServ/appoint/index</td>' +
+            '<td><span class="hq-badge ' + (s.status === '稼働中' ? 'ok' : 'wait') + '">' + s.status + '</span></td>' +
+            '<td style="white-space:nowrap"><a class="link-btn" href="#" onclick="HQ_goStore(\'' + s.id + '\');return false;">管理画面へ</a> <a class="link-btn" href="#" onclick="HQ_goStore(\'' + s.id + '\',\'admin_setting.html\');return false;">設定</a></td></tr>'
+        ).join('');
+        head();
+    }
+    HQ.areas.forEach(a => nArea.insertAdjacentHTML('beforeend', '<option' + (a === '埼玉' ? ' selected' : '') + '>' + a + '</option>'));
+    window.openAdd = function () {
+        const n = HQ.stores.length + 1;
+        feeNote.textContent = '追加後の店舗数 ' + n + ' 店舗：店舗単価 ' + HQ.yen(HQ.unitPrice(n)) + '／月、店舗追加の初期費用 ' + HQ.yen(HQ.price.storeInitial) + '（税抜・料金案）';
+        addModal.classList.add('open');
+    };
+    window.doAdd = function () {
+        const id = 's' + (1001 + HQ.stores.length);
+        HQ.stores.push({ id, code: 'x38773' + (HQ.stores.length + 1).toString().padStart(2, '0'), name: nName.value || '新店舗', area: nArea.value, addr: '埼玉県所沢市9-9-9', tel: '04-0000-1009', manager: '（未設定）', today: 0, month: 0, web: 0, cancel: 0, status: '準備中', policy: true, menuVer: 'v3', trend: [0,0,0,0,0,0,0] });
+        addModal.classList.remove('open'); render();
+        HQ_toast('「' + (nName.value || '新店舗') + '」を追加し、標準メニュー・共通ポリシー・営業時間を配信しました');
+    };
+    render();
+})();
+</script>
+</body>
+</html>

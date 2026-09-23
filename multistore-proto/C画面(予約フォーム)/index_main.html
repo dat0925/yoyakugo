@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+  <script src="../pin_gate.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>画面一覧｜予約フォームモック</title>
+    <style>
+      body {
+        font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+        margin: 24px;
+        color: #333;
+        background: #f5f5f5;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0 0 16px;
+      }
+      .table-wrap {
+        overflow: auto;
+        max-height: calc(100vh - 100px);
+        background: #fff;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        min-width: 1340px;
+      }
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 5px 5px;
+        text-align: center;
+        white-space: nowrap;
+        font-size: 12px;
+      }
+      thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #e8eef5;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+      }
+      thead th:first-child {
+        left: 0;
+        z-index: 4;
+        min-width: 120px;
+        box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.08);
+      }
+      tbody th {
+        background: #f0f4f8;
+        text-align: left;
+        font-weight: normal;
+      }
+      tbody th:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        min-width: 120px;
+        box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08);
+      }
+      a {
+        color: #1e6bb8;
+      }
+      a:hover {
+        color: #0d4f8b;
+      }
+      th.col-cancel-error,
+      td.cancel-error-links {
+        min-width: 300px;
+        width: 1%;
+        white-space: nowrap;
+      }
+      .cancel-error-links {
+        text-align: left;
+        line-height: 1.6;
+      }
+      .cancel-error-links div + div {
+        margin-top: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>C画面(予約フォーム) モック一覧</h1>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>言語</th>
+            <th>予約・受付入力画面</th>
+            <th>確認画面</th>
+            <th>完了画面</th>
+            <th>プライバシーポリシー画面</th>
+            <th>利用規約画面</th>
+            <th>キャンセル画面</th>
+            <th>キャンセル確認画面</th>
+            <th>キャンセル完了画面</th>
+            <th class="col-cancel-error">キャンセルエラー画面</th>
+            <th>キャンセルポリシー画面</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>日本語</th>
+            <td><a href="./index.html">index.html</a></td>
+            <td><a href="./confirm.html">confirm.html</a></td>
+            <td><a href="./complete.html">complete.html</a></td>
+            <td><a href="./privacy.html">privacy.html</a></td>
+            <td><a href="./terms.html">terms.html</a></td>
+            <td><a href="./cancel_verify.html">cancel_verify.html</a></td>
+            <td><a href="./cancel_confirm.html">cancel_confirm.html</a></td>
+            <td><a href="./cancel_complete.html">cancel_complete.html</a></td>
+            <td class="cancel-error-links">
+              <div>キャンセルエラー：<a href="./cancel_error.html">cancel_error.html</a></div>
+              <div>WEB期限エラー：<a href="./cancel_error_net.html">cancel_error_net.html</a></div>
+              <div>電話期限エラー：<a href="./cancel_error_tel.html">cancel_error_tel.html</a></div>
+            </td>
+            <td><a href="./cancel_policy.html">cancel_policy.html</a></td>
+          </tr>
+          <tr>
+            <th>英語</th>
+            <td><a href="./index_en.html">index_en.html</a></td>
+            <td><a href="./confirm_en.html">confirm_en.html</a></td>
+            <td><a href="./complete_en.html">complete_en.html</a></td>
+            <td><a href="./privacy_en.html">privacy_en.html</a></td>
+            <td><a href="./terms_en.html">terms_en.html</a></td>
+            <td><a href="./cancel_verify_en.html">cancel_verify_en.html</a></td>
+            <td><a href="./cancel_confirm_en.html">cancel_confirm_en.html</a></td>
+            <td><a href="./cancel_complete_en.html">cancel_complete_en.html</a></td>
+            <td class="cancel-error-links">
+              <div>キャンセルエラー：<a href="./cancel_error_en.html">cancel_error_en.html</a></div>
+              <div>WEB期限エラー：<a href="./cancel_error_net_en.html">cancel_error_net_en.html</a></div>
+              <div>電話期限エラー：<a href="./cancel_error_tel_en.html">cancel_error_tel_en.html</a></div>
+            </td>
+            <td><a href="./cancel_policy_en.html">cancel_policy_en.html</a></td>
+          </tr>
+          <tr>
+            <th>中国語（簡体字）</th>
+            <td><a href="./index_zh-cn.html">index_zh-cn.html</a></td>
+            <td><a href="./confirm_zh-cn.html">confirm_zh-cn.html</a></td>
+            <td><a href="./complete_zh-cn.html">complete_zh-cn.html</a></td>
+            <td><a href="./privacy_zh-cn.html">privacy_zh-cn.html</a></td>
+            <td><a href="./terms_zh-cn.html">terms_zh-cn.html</a></td>
+            <td><a href="./cancel_verify_zh-cn.html">cancel_verify_zh-cn.html</a></td>
+            <td><a href="./cancel_confirm_zh-cn.html">cancel_confirm_zh-cn.html</a></td>
+            <td><a href="./cancel_complete_zh-cn.html">cancel_complete_zh-cn.html</a></td>
+            <td class="cancel-error-links">
+              <div>キャンセルエラー：<a href="./cancel_error_zh-cn.html">cancel_error_zh-cn.html</a></div>
+              <div>WEB期限エラー：<a href="./cancel_error_net_zh-cn.html">cancel_error_net_zh-cn.html</a></div>
+              <div>電話期限エラー：<a href="./cancel_error_tel_zh-cn.html">cancel_error_tel_zh-cn.html</a></div>
+            </td>
+            <td><a href="./cancel_policy_zh-cn.html">cancel_policy_zh-cn.html</a></td>
+          </tr>
+          <tr>
+            <th>中国語（繁体字）</th>
+            <td><a href="./index_zh-tw.html">index_zh-tw.html</a></td>
+            <td><a href="./confirm_zh-tw.html">confirm_zh-tw.html</a></td>
+            <td><a href="./complete_zh-tw.html">complete_zh-tw.html</a></td>
+            <td><a href="./privacy_zh-tw.html">privacy_zh-tw.html</a></td>
+            <td><a href="./terms_zh-tw.html">terms_zh-tw.html</a></td>
+            <td><a href="./cancel_verify_zh-tw.html">cancel_verify_zh-tw.html</a></td>
+            <td><a href="./cancel_confirm_zh-tw.html">cancel_confirm_zh-tw.html</a></td>
+            <td><a href="./cancel_complete_zh-tw.html">cancel_complete_zh-tw.html</a></td>
+            <td class="cancel-error-links">
+              <div>キャンセルエラー：<a href="./cancel_error_zh-tw.html">cancel_error_zh-tw.html</a></div>
+              <div>WEB期限エラー：<a href="./cancel_error_net_zh-tw.html">cancel_error_net_zh-tw.html</a></div>
+              <div>電話期限エラー：<a href="./cancel_error_tel_zh-tw.html">cancel_error_tel_zh-tw.html</a></div>
+            </td>
+            <td><a href="./cancel_policy_zh-tw.html">cancel_policy_zh-tw.html</a></td>
+          </tr>
+          <tr>
+            <th>韓国語</th>
+            <td><a href="./index_ko.html">index_ko.html</a></td>
+            <td><a href="./confirm_ko.html">confirm_ko.html</a></td>
+            <td><a href="./complete_ko.html">complete_ko.html</a></td>
+            <td><a href="./privacy_ko.html">privacy_ko.html</a></td>
+            <td><a href="./terms_ko.html">terms_ko.html</a></td>
+            <td><a href="./cancel_verify_ko.html">cancel_verify_ko.html</a></td>
+            <td><a href="./cancel_confirm_ko.html">cancel_confirm_ko.html</a></td>
+            <td><a href="./cancel_complete_ko.html">cancel_complete_ko.html</a></td>
+            <td class="cancel-error-links">
+              <div>キャンセルエラー：<a href="./cancel_error_ko.html">cancel_error_ko.html</a></div>
+              <div>WEB期限エラー：<a href="./cancel_error_net_ko.html">cancel_error_net_ko.html</a></div>
+              <div>電話期限エラー：<a href="./cancel_error_tel_ko.html">cancel_error_tel_ko.html</a></div>
+            </td>
+            <td><a href="./cancel_policy_ko.html">cancel_policy_ko.html</a></td>
+          </tr>
+          <tr>
+            <th>タイ語</th>
+            <td><a href="./index_th.html">index_th.html</a></td>
+            <td><a href="./confirm_th.html">confirm_th.html</a></td>
+            <td><a href="./complete_th.html">complete_th.html</a></td>
+            <td><a href="./privacy_th.html">privacy_th.html</a></td>
+            <td><a href="./terms_th.html">terms_th.html</a></td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td><a href="./cancel_policy_th.html">cancel_policy_th.html</a></td>
+          </tr>
+          <tr>
+            <th>タガログ語</th>
+            <td><a href="./index_tl.html">index_tl.html</a></td>
+            <td><a href="./confirm_tl.html">confirm_tl.html</a></td>
+            <td><a href="./complete_tl.html">complete_tl.html</a></td>
+            <td><a href="./privacy_tl.html">privacy_tl.html</a></td>
+            <td><a href="./terms_tl.html">terms_tl.html</a></td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td><a href="./cancel_policy_tl.html">cancel_policy_tl.html</a></td>
+          </tr>
+          <tr>
+            <th>ベトナム語</th>
+            <td><a href="./index_vi.html">index_vi.html</a></td>
+            <td><a href="./confirm_vi.html">confirm_vi.html</a></td>
+            <td><a href="./complete_vi.html">complete_vi.html</a></td>
+            <td><a href="./privacy_vi.html">privacy_vi.html</a></td>
+            <td><a href="./terms_vi.html">terms_vi.html</a></td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td><a href="./cancel_policy_vi.html">cancel_policy_vi.html</a></td>
+          </tr>
+          <tr>
+            <th>インドネシア語</th>
+            <td><a href="./index_id.html">index_id.html</a></td>
+            <td><a href="./confirm_id.html">confirm_id.html</a></td>
+            <td><a href="./complete_id.html">complete_id.html</a></td>
+            <td><a href="./privacy_id.html">privacy_id.html</a></td>
+            <td><a href="./terms_id.html">terms_id.html</a></td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td><a href="./cancel_policy_id.html">cancel_policy_id.html</a></td>
+          </tr>
+          <tr>
+            <th>マレー語</th>
+            <td><a href="./index_ms.html">index_ms.html</a></td>
+            <td><a href="./confirm_ms.html">confirm_ms.html</a></td>
+            <td><a href="./complete_ms.html">complete_ms.html</a></td>
+            <td><a href="./privacy_ms.html">privacy_ms.html</a></td>
+            <td><a href="./terms_ms.html">terms_ms.html</a></td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td><a href="./cancel_policy_ms.html">cancel_policy_ms.html</a></td>
+          </tr>
+          <tr>
+            <th>フランス語</th>
+            <td><a href="./index_fr.html">index_fr.html</a></td>
+            <td><a href="./confirm_fr.html">confirm_fr.html</a></td>
+            <td><a href="./complete_fr.html">complete_fr.html</a></td>
+            <td><a href="./privacy_fr.html">privacy_fr.html</a></td>
+            <td><a href="./terms_fr.html">terms_fr.html</a></td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td><a href="./cancel_policy_fr.html">cancel_policy_fr.html</a></td>
+          </tr>
+          <tr>
+            <th>ドイツ語</th>
+            <td><a href="./index_de.html">index_de.html</a></td>
+            <td><a href="./confirm_de.html">confirm_de.html</a></td>
+            <td><a href="./complete_de.html">complete_de.html</a></td>
+            <td><a href="./privacy_de.html">privacy_de.html</a></td>
+            <td><a href="./terms_de.html">terms_de.html</a></td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td><a href="./cancel_policy_de.html">cancel_policy_de.html</a></td>
+          </tr>
+          <tr>
+            <th>ヒンディー語</th>
+            <td><a href="./index_hi.html">index_hi.html</a></td>
+            <td><a href="./confirm_hi.html">confirm_hi.html</a></td>
+            <td><a href="./complete_hi.html">complete_hi.html</a></td>
+            <td><a href="./privacy_hi.html">privacy_hi.html</a></td>
+            <td><a href="./terms_hi.html">terms_hi.html</a></td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td><a href="./cancel_policy_hi.html">cancel_policy_hi.html</a></td>
+          </tr>
+          <tr>
+            <th>ロシア語</th>
+            <td><a href="./index_ru.html">index_ru.html</a></td>
+            <td><a href="./confirm_ru.html">confirm_ru.html</a></td>
+            <td><a href="./complete_ru.html">complete_ru.html</a></td>
+            <td><a href="./privacy_ru.html">privacy_ru.html</a></td>
+            <td><a href="./terms_ru.html">terms_ru.html</a></td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td><a href="./cancel_policy_ru.html">cancel_policy_ru.html</a></td>
+          </tr>
+          <tr>
+            <th>アラビア語</th>
+            <td><a href="./index_ar.html">index_ar.html</a></td>
+            <td><a href="./confirm_ar.html">confirm_ar.html</a></td>
+            <td><a href="./complete_ar.html">complete_ar.html</a></td>
+            <td><a href="./privacy_ar.html">privacy_ar.html</a></td>
+            <td><a href="./terms_ar.html">terms_ar.html</a></td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td><a href="./cancel_policy_ar.html">cancel_policy_ar.html</a></td>
+          </tr>
+          <tr>
+            <th>ポルトガル語</th>
+            <td><a href="./index_pt.html">index_pt.html</a></td>
+            <td><a href="./confirm_pt.html">confirm_pt.html</a></td>
+            <td><a href="./complete_pt.html">complete_pt.html</a></td>
+            <td><a href="./privacy_pt.html">privacy_pt.html</a></td>
+            <td><a href="./terms_pt.html">terms_pt.html</a></td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td><a href="./cancel_policy_pt.html">cancel_policy_pt.html</a></td>
+          </tr>
+      </table>
+    </div>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        var wrap = document.querySelector('.table-wrap');
+        if (wrap) {
+          wrap.scrollLeft = wrap.scrollWidth - wrap.clientWidth;
+        }
+      });
+    </script>
+  </body>
+</html>

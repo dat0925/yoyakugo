@@ -1,0 +1,164 @@
+<!doctype html>
+<html class="no-js" lang="ms">
+  <head>
+  <script src="../pin_gate.js"></script>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="canonical" href="http://www./">
+    <title></title>
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta property="og:url" content="http://www./">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="">
+    <meta property="og:title" content="">
+    <meta property="og:site_name" content="">
+    <meta property="og:description" content="">
+    <link href="./assets/css/main.css" rel="stylesheet">
+    <script src="./assets/js/vendor/jquery.min.js"></script>
+  </head>
+  <body>
+    <header>
+      <div class="primary_header">
+        <div class="container">
+          <div class="row">
+            <h1 class="title"> ●● Klinik Osteopati </h1>
+            <div class="flow">
+              <ul>
+                <li>Butiran</li>
+                <li class="active">Sahkan</li>
+                <li>Selesai</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main>
+      <form action="./complete_ms.html" method="post">
+        <section class="confirm01">
+          <div class="container gutters">
+            <div class="text-center text-xlarge">Daftar masuk / tempahan anda belum selesai.</div>
+            <div class="text-center text-large">Sila semak maklumat yang dimasukkan dan klik "Selesaikan daftar masuk / tempahan" jika semuanya betul.</div>
+            <div class="box">
+              <ul>
+                <li>
+                  <label>
+                    <span class="title_txt">
+                      <span>Butiran daftar masuk / tempahan</span>
+                    </span>
+                    <div class="table-container">
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Bilangan Tetamu</div>
+                        <div class="cell cell-2">1</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Perkhidmatan</div>
+                        <div class="cell cell-2">
+                          <div class="confirm_menu_name">Nama Menu Nama Menu</div>
+                          <ul class="confirm_option_list">
+                            <li>+Nama Menu Opsyen Nama Menu Opsyen</li>
+                            <li>+Nama Menu Opsyen Nama Menu Opsyen</li>
+                          </ul>
+                        </div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Tarikh & Masa</div>
+                        <div class="cell cell-2">1 Disember 2025 (Isn) 10:30</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Kakitangan</div>
+                        <div class="cell cell-2">店舗花子</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Harga (termasuk cukai)</div>
+                        <div class="cell cell-2">3,000 JPY</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Masa Diperlukan</div>
+                        <div class="cell cell-2">45 minit</div>
+                      </div>
+                    </div>
+                  </label>
+                </li>
+                <li>
+                  <label>
+                    <span class="title_txt">
+                      <span>Maklumat Tempahan</span>
+                    </span>
+                    <div class="table-container">
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Nama</div>
+                        <div class="cell cell-2">Yamada Taro</div>
+                      </div>
+                      <div class="row" id="furigana_row">
+                        <div class="cell cell-1 text-right">Nama (Furigana)</div>
+                        <div class="cell cell-2"></div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Nombor Telefon</div>
+                        <div class="cell cell-2">03-0000-1111</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Alamat E-mel</div>
+                        <div class="cell cell-2">test@iflag.co.jp</div>
+                      </div>
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Komen</div>
+                        <div class="cell cell-2">Saya mahukan pengamal wanita.</div>
+                      </div>
+                    </div>
+                  </label>
+                </li>
+                <li>
+                  <label>
+                    <span class="title_txt">
+                      <span>Pengesahan E-mel</span>
+                    </span>
+                    <div class="table-container">
+                      <div class="row">
+                        <div class="cell cell-1 text-right">Kod PIN</div>
+                        <div class="cell cell-2">
+                          <div class="pin_input_wrapper">
+                            <input type="text" class="input_pin" id="pinCode" placeholder="" maxlength="6" pattern="\d{6}">
+                            <div class="pin_progress" id="pinTimer">
+                              <div class="progress_header">
+                                <div class="progress_label">Sah Sehingga</div>
+                                <div class="progress_text" id="progressText">01:00</div>
+                              </div>
+                              <div class="progress_bar">
+                                <div class="progress_fill" id="progressFill"></div>
+                              </div>
+                              <div class="resend_link" id="resendLink" style="display: none;">
+                                <a href="./index_ms.html">Hantar Semula Kod PIN</a>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="pin_code_notice">
+                            <p>E-mel pengesahan telah dihantar ke test@iflag.co.jp.</p>
+                            <p>Sila masukkan kod PIN daripada e-mel.</p>
+                            <p class="attention_point">Jika tidak menerima e-mel, semak folder spam<br/>atau sahkan alamat e-mel dan hantar semula.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                </li>
+              </ul>
+              <div class="input_wrap">
+                <div class="back_wrap"><a href="./index_ms.html">Ubah butiran daftar masuk / tempahan</a></div>
+                <p class="submit_wrap">
+                  <input type="submit" value="Selesaikan daftar masuk / tempahan">
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </form>
+      <div class="foot">© 2025 IFLAG Co, Ltd.</div>
+    </main>
+
+    <script src="./assets/js/main.js"></script>
+  </body>
+</html>

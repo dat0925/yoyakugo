@@ -16,8 +16,8 @@
     <main class="main">
         <div class="hq-head">
             <div>
-                <h2>📊 全店ダッシュボード</h2>
-                <div class="sub">2026年9月23日（水）09:10 時点｜全 <span id="nStores"></span> 店舗のうち稼働中 <span id="nActive"></span> 店舗</div>
+                <h2 id="dashTitle">📊 全店ダッシュボード</h2>
+                <div class="sub">2026年9月23日（水）09:10 時点｜<span id="scopeLabel">全</span> <span id="nStores"></span> 店舗のうち稼働中 <span id="nActive"></span> 店舗</div>
             </div>
             <div class="hq-filters">
                 <select id="fArea"><option value="">すべてのエリア</option></select>
@@ -30,7 +30,7 @@
 
         <!-- 2) 本部が手を打つべきこと -->
         <div class="card">
-            <h3>⚠ 本部で確認が必要な店舗</h3>
+            <h3 id="alertTitle">⚠ 本部で確認が必要な店舗</h3>
             <div class="hq-alerts" id="alerts"></div>
         </div>
 
@@ -56,29 +56,38 @@
 <script src="./js/hq_shell.js"></script>
 <script>
 (function () {
-    const act = HQ.stores.filter(s => s.status === '稼働中');
-    nStores.textContent = HQ.stores.length; nActive.textContent = act.length;
+    // エリアマネージャーは担当エリアの店舗だけ。本部管理者は全店（エリアで絞り込める）
+    const am = HQ.isAM();
+    const base = HQ.myStores();
+    const act = base.filter(s => s.status === '稼働中');
+    nStores.textContent = base.length; nActive.textContent = act.length;
+    scopeLabel.textContent = am ? '担当' : '全';
     HQ.areas.forEach(a => fArea.insertAdjacentHTML('beforeend', '<option>' + a + '</option>'));
+    if (am) { fArea.value = HQ.me.area; fArea.disabled = true; alertTitle.textContent = '⚠ 確認が必要な店舗（' + HQ.me.area + 'エリア）'; }
 
     function render() {
-        const area = fArea.value;
-        const list = HQ.stores.filter(s => !area || s.area === area);
+        const area = am ? HQ.me.area : fArea.value;
+        dashTitle.textContent = area ? '📊 エリアダッシュボード（' + area + 'エリア）' : '📊 全店ダッシュボード';
+        const list = base.filter(s => !area || s.area === area);
         const live = list.filter(s => s.status === '稼働中');
         const sum = k => live.reduce((a, s) => a + s[k], 0);
         const avg = k => live.length ? (live.reduce((a, s) => a + s[k] * s.month, 0) / Math.max(1, sum('month'))) : 0;
 
+        const sc = area ? '（' + area + 'エリア）' : '（全店）';
         kpis.innerHTML = [
-            ['本日の予約（全店）', sum('today'), '件', '前週同曜日 +9件', 'up'],
-            ['今月の予約（全店）', sum('month').toLocaleString(), '件', '前月同日比 +12.4%', 'up'],
+            ['本日の予約' + sc, sum('today'), '件', '前週同曜日 +9件', 'up'],
+            ['今月の予約' + sc, sum('month').toLocaleString(), '件', '前月同日比 +12.4%', 'up'],
             ['WEB予約比率', avg('web').toFixed(1), '%', '電話の受付を減らせている割合', ''],
             ['キャンセル率', avg('cancel').toFixed(1), '%', '前月 5.9% → 改善', 'up']
         ].map(k => '<div class="hq-kpi"><div class="lb">' + k[0] + '</div><div class="v">' + k[1] + '<small>' + k[2] + '</small></div><div class="d ' + k[4] + '">' + k[3] + '</div></div>').join('');
 
+        // 配信は本部管理者だけ。エリアマネージャーには店舗の設定画面を案内する
+        const fix = s => am ? ['店舗の設定を開く', 'admin_setting.html?store=' + s.id] : null;
         const al = [];
         list.forEach(s => {
-            if (s.status !== '稼働中') al.push(['🟡', s, '開店準備中。メニュー・ポリシーが未配信です', '一括配信する', 'hq_distribute.html']);
-            else if (!s.policy) al.push(['🔴', s, 'キャンセルポリシーが未設定です（お客様の予約画面で本文が空になります）', '共通ポリシーを配信', 'hq_distribute.html']);
-            if (s.status === '稼働中' && s.cancel >= 7) al.push(['🟠', s, 'キャンセル率が ' + s.cancel + '% とグループ平均より高めです', '予約を見る', 'hq_reservations.html?store=' + s.id]);
+            if (s.status !== '稼働中') al.push(['🟡', s, '開店準備中。メニュー・ポリシーが未配信です'].concat(fix(s) || ['一括配信する', 'hq_distribute.html']));
+            else if (!s.policy) al.push(['🔴', s, 'キャンセルポリシーが未設定です（お客様の予約画面で本文が空になります）'].concat(fix(s) || ['共通ポリシーを配信', 'hq_distribute.html']));
+            if (s.status === '稼働中' && s.cancel >= 7) al.push(['🟠', s, 'キャンセル率が ' + s.cancel + '% とグループ平均より高めです', '予約を見る', 'admin_reservations.html?store=' + s.id]);
         });
         alerts.innerHTML = al.length ? al.map(a => '<div class="hq-alert">' + a[0] + ' <b>' + a[1].name + '</b>' + a[2] + '<a class="act link-btn" href="./' + a[4] + '">' + a[3] + ' →</a></div>').join('') : '<div class="muted">確認が必要な店舗はありません</div>';
 

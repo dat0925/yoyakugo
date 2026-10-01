@@ -111,3 +111,19 @@
   .hq-switch span, .ss-group { display: none; }
   .hq-form { grid-template-columns: 1fr; }
 }
+
+/* ---- 2026-10-02 追加：表示ユーザー切替・権限外の案内 ---- */
+.hq-proto select { border-style: dashed; border-color: #f59e0b; background: #fffbeb; }
+.hq-denied { max-width: 640px; }
+.hq-denied h3 { margin-top: 0; }
+
+/* ---- 2026-10-02 追加：受付・予約詳細の「他店舗での予約・来店」（M4） ---- */
+.ss-shared { margin-bottom: 16px; border: 1px solid #bae6fd; background: #f0f9ff; border-radius: 12px; padding: 12px 14px; font-size: 13px; }
+.ss-shared-h { font-weight: 700; color: #0b1f3a; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.ss-shared-sum { margin-bottom: 6px; }
+.ss-shared-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.ss-shared-next { background: #fff; border: 1px solid #bae6fd; border-radius: 8px; padding: 6px 10px; margin-bottom: 8px; }
+.ss-shared-tbl { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; }
+.ss-shared-tbl td { padding: 6px 8px; border-bottom: 1px solid #e0f2fe; }
+.ss-shared-none { padding: 4px 0; }
+.ss-shared-foot { color: var(--muted); font-size: 11px; margin-top: 6px; }

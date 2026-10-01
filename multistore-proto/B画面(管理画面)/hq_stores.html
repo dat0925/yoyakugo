@@ -33,7 +33,7 @@
                 <tbody></tbody>
             </table>
         </div>
-        <div class="hq-next">🔗 各店舗の予約URL（https://ssl.yoyakugo-system.com/&lt;契約者ID&gt;/…）は<b>今のまま変わりません</b>。グループ全体の入口として「グループ予約ページ」のURLが1本増えます。</div>
+        <div class="hq-next">🔗 各店舗の予約URL（https://ssl.yoyakugo-system.com/&lt;契約者ID&gt;/…）は<b>今のまま変わりません</b>。お客様は従来どおり各店舗の予約URLから予約します。</div>
     </main>
 </div>
 
@@ -41,7 +41,7 @@
     <div class="hq-modal">
         <h3>＋ 店舗を追加</h3>
         <div class="hq-form">
-            <label>店舗名 *</label><input id="nName" value="所沢院">
+            <label>店舗名 *</label><input id="nName" value="所沢店">
             <label>エリア *</label><select id="nArea"></select>
             <label>住所</label><input value="埼玉県所沢市9-9-9">
             <label>店長</label><select><option>（あとで設定）</option><option>中村 八重</option></select>
@@ -67,8 +67,8 @@
     function head() {
         const n = HQ.stores.length;
         plan.textContent = HQ.group.plan;
-        used.textContent = n + ' / ' + HQ.group.maxStores + ' 店舗';
-        usedBar.style.width = (n / HQ.group.maxStores * 100) + '%';
+        used.textContent = n + ' 店舗（上限なし）';
+        usedBar.style.width = '100%';
         unit.textContent = HQ.yen(HQ.unitPrice(n)) + ' ／ 店舗・月';
     }
     function render() {

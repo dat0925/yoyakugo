@@ -4,7 +4,7 @@
   <script src="../pin_gate.js"></script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>顧客台帳（次期）｜本部コンソール（多店舗管理プロトタイプ）</title>
+    <title>予約情報の共有｜本部コンソール（多店舗管理プロトタイプ）</title>
     <link href="./style.css" rel="stylesheet">
     <link href="./sp.css" rel="stylesheet">
     <link href="./hq.css" rel="stylesheet">
@@ -16,27 +16,62 @@
     <main class="main">
         <div class="hq-head">
             <div>
-                <h2>👥 グループ顧客台帳 <span class="hq-badge wait">SHOULD：2回目のリリース</span></h2>
-                <div class="sub">店舗ごとに分かれている顧客データを、本部の設定でグループ単位にまとめます。「A院の常連がB院に来たら新規扱い」をなくします。</div>
+                <h2>👥 予約情報の共有 <span class="hq-badge ok">MUST：初回リリース</span></h2>
+                <div class="sub">お客様の氏名・電話番号で、グループ内の他店舗での予約と来店の状況を確認できます。予約GOには会員管理機能が無いため、その代わりとして「A店の常連がB店に来たら新規扱い」をなくします。</div>
             </div>
         </div>
-        <div class="hq-next">初回リリース（MUST）には含めません。個人情報の共有範囲（プライバシーポリシーの記載・お客様の同意）を法務と詰める必要があるため、本部が「共有する／しない」を選べる形で2回目に出す計画です。</div>
+        <div class="hq-next">店舗の受付・予約画面でも、予約詳細を開くと同じお客様の他店舗での予約・来店が出ます（店舗画面の「受付・予約」で予約を開いて確認できます）。共有するのは<b>どの店舗で・いつ・何を予約し・来店したか</b>だけで、施設メモ・コメントは店舗の外に出しません。共有する項目の範囲とプライバシーポリシーの記載は法務と確認します。</div>
         <div class="card">
-            <div class="hq-filters" style="margin-bottom:10px"><input type="search" placeholder="お客様名・電話番号で検索" value="山田" style="min-width:260px"></div>
+            <div class="hq-filters" style="margin-bottom:10px">
+                <input type="search" id="q" placeholder="お客様名（カナ可）・電話番号（下4桁でも可）で検索" value="山田" style="min-width:320px">
+                <span class="muted" style="font-size:12px" id="hit"></span>
+            </div>
             <div class="hq-table-wrap">
-                <table class="hq-table">
-                    <thead><tr><th>お客様</th><th>電話番号（下4桁）</th><th>よく使う店舗</th><th>来店回数（全店）</th><th>来店した店舗</th><th>最終来店</th></tr></thead>
-                    <tbody>
-                        <tr><td><b>山田 太郎</b></td><td>***-****-1234</td><td>新宿院</td><td class="num">14 回</td><td><span class="hq-badge gray">新宿院 11</span> <span class="hq-badge gray">渋谷院 3</span></td><td>2026/09/23</td></tr>
-                        <tr><td><b>山田 花子</b></td><td>***-****-5678</td><td>横浜院</td><td class="num">6 回</td><td><span class="hq-badge gray">横浜院 5</span> <span class="hq-badge gray">川崎院 1</span></td><td>2026/09/12</td></tr>
-                        <tr><td><b>山田 学</b></td><td>***-****-9012</td><td>大宮院</td><td class="num">2 回</td><td><span class="hq-badge gray">大宮院 2</span></td><td>2026/08/30</td></tr>
-                    </tbody>
+                <table class="hq-table" id="list">
+                    <thead><tr><th>お客様</th><th>電話番号（下4桁）</th><th>よく使う店舗</th><th>来店回数（全店）</th><th>来店した店舗</th><th>最終来店</th><th>次回の予約</th></tr></thead>
+                    <tbody></tbody>
                 </table>
+            </div>
+        </div>
+        <div class="card" id="detail" hidden>
+            <h3 id="dTitle"></h3>
+            <div class="hq-table-wrap">
+                <table class="hq-table"><thead><tr><th>日時</th><th>店舗</th><th>メニュー</th><th>結果</th></tr></thead><tbody id="dRows"></tbody></table>
             </div>
         </div>
     </main>
 </div>
 <script src="./js/hq_data.js"></script>
 <script src="./js/hq_shell.js"></script>
+<script>
+(function () {
+    const nm = id => (HQ.store(id) || {}).name || id;
+    const fmt = at => at.slice(5, 16);
+    let sel = null;
+    function render() {
+        const rs = HQ.searchShared(q.value);
+        hit.textContent = rs.length + ' 件';
+        list.querySelector('tbody').innerHTML = rs.length ? rs.map(c => {
+            const top = c.visits.slice().sort((a, b) => b.n - a.n)[0];
+            const last = c.visits.map(v => v.last).sort().pop();
+            return '<tr data-tel="' + c.tel + '" style="cursor:pointer' + (c === sel ? ';background:#e6fff5' : '') + '"><td><b>' + c.name + '</b><div class="muted" style="font-size:12px">' + c.kana + '</div></td>' +
+                '<td>' + HQ.maskTel(c.tel) + '</td><td>' + nm(top.store) + '</td>' +
+                '<td class="num">' + HQ.totalVisits(c) + ' 回</td>' +
+                '<td>' + c.visits.map(v => '<span class="hq-badge gray">' + nm(v.store) + ' ' + v.n + '</span>').join(' ') + '</td>' +
+                '<td>' + last + '</td>' +
+                '<td>' + (c.next ? fmt(c.next.at) + ' ' + nm(c.next.store) : '<span class="muted">なし</span>') + '</td></tr>';
+        }).join('') : '<tr><td colspan="7" class="muted">該当するお客様はいません</td></tr>';
+        list.querySelectorAll('tr[data-tel]').forEach(tr => tr.onclick = () => { sel = HQ.shared.find(c => c.tel === tr.dataset.tel); render(); });
+        detail.hidden = !sel;
+        if (sel) {
+            dTitle.textContent = '📋 ' + sel.name + ' 様の予約・来店（グループ全店）';
+            const rows = (sel.next ? [[sel.next.at, sel.next.store, sel.next.menu, '予約中']] : []).concat(sel.recent);
+            dRows.innerHTML = rows.map(r => '<tr><td>' + r[0] + '</td><td>' + nm(r[1]) + '</td><td>' + r[2] + '</td><td><span class="hq-badge ' + (r[3] === '来店' ? 'ok' : r[3] === '予約中' ? 'blue' : 'ng') + '">' + r[3] + '</span></td></tr>').join('');
+        }
+    }
+    q.addEventListener('input', () => { sel = null; render(); });
+    render();
+})();
+</script>
 </body>
 </html>

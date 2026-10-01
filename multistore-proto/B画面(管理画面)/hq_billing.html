@@ -43,7 +43,7 @@
         '<tr><td><b>予約GO 本部管理料</b></td><td>' + HQ.group.name + '</td><td class="num">1</td><td class="num">' + HQ.yen(HQ.price.hqMonthly) + '</td><td class="num">' + HQ.yen(HQ.price.hqMonthly) + '</td></tr>' +
         HQ.stores.map(s => '<tr><td>予約GO 店舗利用料</td><td>' + s.area + '｜' + s.name + (s.status !== '稼働中' ? ' <span class="hq-badge wait">準備中</span>' : '') + '</td><td class="num">1</td><td class="num">' + HQ.yen(unit) + '</td><td class="num">' + HQ.yen(unit) + '</td></tr>').join('') +
         '<tr><td colspan="4" style="text-align:right"><b>合計（税抜）</b></td><td class="num"><b>' + HQ.yen(total) + '</b></td></tr>';
-    tiers.querySelector('tbody').innerHTML = HQ.price.tiers.map(t => '<tr' + (n >= t.from && n <= t.to ? ' style="background:#e6fff5"' : '') + '><td>' + t.from + '〜' + t.to + ' 店舗</td><td class="num">' + HQ.yen(t.unit) + '</td><td class="num">' + HQ.yen(HQ.price.hqMonthly) + '</td></tr>').join('');
+    tiers.querySelector('tbody').innerHTML = HQ.price.tiers.map(t => '<tr' + (n >= t.from && n <= t.to ? ' style="background:#e6fff5"' : '') + '><td>' + (t.to === Infinity ? t.from + ' 店舗以上' : t.from + '〜' + t.to + ' 店舗') + '</td><td class="num">' + HQ.yen(t.unit) + '</td><td class="num">' + HQ.yen(HQ.price.hqMonthly) + '</td></tr>').join('');
 })();
 </script>
 </body>
